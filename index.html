@@ -116,7 +116,7 @@
 <body>
   <div class="card">
     <h1>Portón Familia HiVe 🚪</h1>
-    <div class="desc">Este acceso es para abrir el portón de la casa.<br><b>Sólo funciona los martes de 7:00am a 5:00pm.</b></div>
+<!--     <div class="desc">Este acceso es para abrir el portón de la casa.<br><b>Sólo funciona los martes de 7:00am a 5:00pm.</b></div> -->
     <div class="horario" id="horarioMsg"></div>
     <input id="codigo" type="password" pattern="[0-9]{4}" maxlength="4" placeholder="Código de 4 dígitos">
     <button id="abrir" disabled>Abrir Portón</button>
@@ -129,7 +129,7 @@
     const HORA_INICIO = 7;  // 7:00 am
 const HORA_FIN = 17;    // 5:00 pm
 const DIAS_PERMITIDOS = [2]; // Martes (0=lun,1=mar,2=mié...)
-const CODIGO_CORRECTO = '1234';
+const CODIGO_CORRECTO = '7777';
 
     function esHorarioValido() {
       const now = new Date();
