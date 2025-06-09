@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Abrir Portón</title>
+  <title>Portón Familia HiVe</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <!-- Google Fonts para modernidad -->
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;700&display=swap" rel="stylesheet">
@@ -52,6 +52,16 @@
       font-weight: 600;
       letter-spacing: 0.2px;
       box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+    }
+    #codigo {
+      width: 100%;
+      padding: 0.6rem;
+      font-size: 1.1rem;
+      text-align: center;
+      border-radius: 0.8rem;
+      border: 1px solid #bdbdbd;
+      margin-bottom: 1rem;
+      font-family: 'Montserrat', Arial, sans-serif;
     }
     #abrir {
       background: linear-gradient(90deg,#009efd 0%,#2af598 100%);
@@ -105,9 +115,10 @@
 </head>
 <body>
   <div class="card">
-    <h1>Bienvenido</h1>
+    <h1>Portón Familia HiVe 🚪</h1>
     <div class="desc">Este acceso es para abrir el portón de la casa.<br><b>Sólo funciona los martes de 7:00am a 5:00pm.</b></div>
     <div class="horario" id="horarioMsg"></div>
+    <input id="codigo" type="password" pattern="[0-9]{4}" maxlength="4" placeholder="Código de 4 dígitos">
     <button id="abrir" disabled>Abrir Portón</button>
     <div id="ok" class="fade">¡Listo! El portón está abriéndose.</div>
     <div id="error" class="fade">Hubo un error, intentá de nuevo más tarde.</div>
@@ -116,8 +127,9 @@
   <script>
     // Parámetros configurables
     const HORA_INICIO = 7;  // 7:00 am
-    const HORA_FIN = 17;    // 5:00 pm
-    const DIAS_PERMITIDOS = [2]; // Martes (0=lun,1=mar,2=mié...)
+const HORA_FIN = 17;    // 5:00 pm
+const DIAS_PERMITIDOS = [2]; // Martes (0=lun,1=mar,2=mié...)
+const CODIGO_CORRECTO = '1234';
 
     function esHorarioValido() {
       const now = new Date();
@@ -150,9 +162,21 @@
     }
 
     function actualizarEstado() {
-      // Botón solo activo en horario válido
-      document.getElementById('abrir').disabled = !esHorarioValido();
+      const codigo = document.getElementById('codigo').value;
+      const valido = codigo === CODIGO_CORRECTO;
+      document.getElementById('abrir').disabled = !(esHorarioValido() && valido);
       document.getElementById('horarioMsg').innerHTML = horarioMsg();
     }
 
-    document.getElementById('abrir').onclick =
+    document.getElementById('codigo').addEventListener('input', actualizarEstado);
+
+    document.getElementById('abrir').onclick = () => {
+      mostrarMsg('ok', true);
+      mostrarMsg('error', false);
+    };
+
+    actualizarEstado();
+    setInterval(actualizarEstado, 60000);
+  </script>
+</body>
+</html>
