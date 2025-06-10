@@ -122,12 +122,16 @@
           timerEl.textContent = 'Portón cerrado';
           const msgEl = document.getElementById('msg');
           msgEl.textContent = 'Portón cerrado';
-          msgEl.className = 'ok';
+          msgEl.className = 'err';
           progress.style.width = '0%';
           setTimeout(() => {
             timerEl.style.display = 'none';
             progressContainer.style.display = 'none';
           }, 3000);
+          setTimeout(() => {
+            msgEl.textContent = '';
+            msgEl.className = '';
+          }, 10000);
         } else {
           timerEl.textContent = `Cierre en ${formatoTiempo(restantes)}`;
         }
