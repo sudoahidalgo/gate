@@ -2,13 +2,58 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Acceso al Portón</title>
+  <title>Porton Familia HiVe</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cmVjdCB4PSIxNSIgeT0iMTAiIHdpZHRoPSIyMCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzhCNDUxMyIvPjxyZWN0IHg9IjY1IiB5PSIxMCIgd2lkdGg9IjIwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjOEI0NTEzIi8+PHJlY3QgeD0iMzUiIHk9IjMwIiB3aWR0aD0iMzAiIGhlaWdodD0iMjAiIGZpbGw9IiNBMDUyMkQiLz48cmVjdCB4PSIzNSIgeT0iNTUiIHdpZHRoPSIzMCIgaGVpZ2h0PSIyMCIgZmlsbD0iI0EwNTIyRCIvPjwvc3ZnPg==">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body { background: #f4f6fb; font-family: Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh;}
-    .container { background: #fff; padding: 2.5rem 2rem; border-radius: 2rem; box-shadow: 0 4px 24px #0001; width: 320px; text-align: center;}
-    input[type="password"] { font-size: 2rem; letter-spacing: 1rem; text-align: center; width: 8rem; padding: 0.8rem; margin-bottom: 1.2rem; border-radius: 1.2rem; border: 1px solid #bcd; background: #f7fbff;}
-    button { background: linear-gradient(90deg,#009efd 0%,#2af598 100%); color: #fff; border: none; font-size: 1.15rem; font-weight: 700; border-radius: 1.2rem; padding: 0.9rem 2.4rem; cursor: pointer; margin-top: 0.7rem;}
+    body {
+      background: linear-gradient(135deg, #ece9e6, #ffffff);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .container {
+      background: #fff;
+      padding: 3rem 2.5rem;
+      border-radius: 1.5rem;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+      width: 340px;
+      text-align: center;
+    }
+    input[type="password"] {
+      font-size: 2rem;
+      letter-spacing: 1rem;
+      text-align: center;
+      width: 8rem;
+      padding: 0.8rem;
+      margin-bottom: 1.2rem;
+      border-radius: 0.8rem;
+      border: 1px solid #ccc;
+      background: #f9fafc;
+      transition: box-shadow 0.2s;
+    }
+    input[type="password"]:focus {
+      outline: none;
+      box-shadow: 0 0 0 2px #009efd55;
+    }
+    button {
+      background: linear-gradient(90deg,#00c6ff 0%,#0072ff 100%);
+      color: #fff;
+      border: none;
+      font-size: 1.15rem;
+      font-weight: 700;
+      border-radius: 1rem;
+      padding: 0.9rem 2.4rem;
+      cursor: pointer;
+      margin-top: 0.7rem;
+      transition: opacity 0.2s;
+    }
+    button:hover {
+      opacity: 0.9;
+    }
     #msg { margin-top: 1.2rem; font-weight: 600; }
     #msg.ok { color: #23bc6b; }
     #msg.err { color: #ee5253; }
@@ -16,7 +61,7 @@
 </head>
 <body>
   <div class="container">
-    <h2>Acceso al Portón</h2>
+    <h2>Porton Familia HiVe</h2>
     <input type="password" maxlength="4" id="codigo" placeholder="Código" autocomplete="one-time-code">
     <br>
     <button onclick="abrirPorton()">Abrir</button>
@@ -24,7 +69,7 @@
   </div>
   <script>
     // Cambia esto por tu código de acceso real
-    const CODIGO_CORRECTO = "1987"; // Ejemplo: 1987
+    const CODIGO_CORRECTO = "7777"; // Código de acceso de la familia
 
     async function abrirPorton() {
       const input = document.getElementById('codigo').value;
