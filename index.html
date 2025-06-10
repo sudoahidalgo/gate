@@ -2,13 +2,14 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Porton Familia HiVe</title>
+  <title>Portón Familia HiVe</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cmVjdCB4PSIxNSIgeT0iMTAiIHdpZHRoPSIyMCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzhCNDUxMyIvPjxyZWN0IHg9IjY1IiB5PSIxMCIgd2lkdGg9IjIwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjOEI0NTEzIi8+PHJlY3QgeD0iMzUiIHk9IjMwIiB3aWR0aD0iMzAiIGhlaWdodD0iMjAiIGZpbGw9IiNBMDUyMkQiLz48cmVjdCB4PSIzNSIgeT0iNTUiIHdpZHRoPSIzMCIgaGVpZ2h0PSIyMCIgZmlsbD0iI0EwNTIyRCIvPjwvc3ZnPg==">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
   <style>
     body {
-      background: linear-gradient(135deg, #ece9e6, #ffffff);
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #f5f7fa, #c3cfe2);
+      font-family: 'Inter', sans-serif;
       display: flex;
       justify-content: center;
       align-items: center;
@@ -57,6 +58,25 @@
     #msg { margin-top: 1.2rem; font-weight: 600; }
     #msg.ok { color: #23bc6b; }
     #msg.err { color: #ee5253; }
+    #timer {
+      margin-top: 0.8rem;
+      font-weight: 500;
+      color: #555;
+      display: none;
+    }
+    .progress {
+      height: 6px;
+      background: #e1e1e1;
+      border-radius: 3px;
+      overflow: hidden;
+      margin-top: 0.4rem;
+      display: none;
+    }
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg,#00c6ff 0%,#0072ff 100%);
+      width: 100%;
+    }
   </style>
 </head>
 <body>
@@ -66,10 +86,50 @@
     <br>
     <button onclick="abrirPorton()">Abrir</button>
     <div id="msg"></div>
+    <div id="timer"></div>
+    <div class="progress"><div class="progress-bar" id="progress-bar"></div></div>
   </div>
   <script>
     // Cambia esto por tu código de acceso real
     const CODIGO_CORRECTO = "7777"; // Código de acceso de la familia
+
+    const DURACION_CIERRE = 38;
+    let timerInterval;
+
+    function formatoTiempo(segundos) {
+      const m = String(Math.floor(segundos / 60)).padStart(2, '0');
+      const s = String(segundos % 60).padStart(2, '0');
+      return `${m}:${s}`;
+    }
+
+    function iniciarTimer() {
+      const timerEl = document.getElementById('timer');
+      const progress = document.getElementById('progress-bar');
+      const progressContainer = document.querySelector('.progress');
+      let restantes = DURACION_CIERRE;
+
+      clearInterval(timerInterval);
+      timerEl.style.display = 'block';
+      progressContainer.style.display = 'block';
+      timerEl.textContent = `Cierre en ${formatoTiempo(restantes)}`;
+      progress.style.width = '100%';
+
+      timerInterval = setInterval(() => {
+        restantes--;
+        progress.style.width = `${(restantes / DURACION_CIERRE) * 100}%`;
+        if (restantes <= 0) {
+          clearInterval(timerInterval);
+          timerEl.textContent = 'Portón cerrado';
+          progress.style.width = '0%';
+          setTimeout(() => {
+            timerEl.style.display = 'none';
+            progressContainer.style.display = 'none';
+          }, 3000);
+        } else {
+          timerEl.textContent = `Cierre en ${formatoTiempo(restantes)}`;
+        }
+      }, 1000);
+    }
 
     async function abrirPorton() {
       const input = document.getElementById('codigo').value;
@@ -94,6 +154,7 @@
         if (res.ok) {
           msg.textContent = '¡Listo! El portón se está abriendo.';
           msg.className = 'ok';
+          iniciarTimer();
         } else {
           msg.textContent = 'Hubo un error. Intentá de nuevo.';
           msg.className = 'err';
