@@ -24,7 +24,7 @@
       width: 340px;
       text-align: center;
     }
-    input[type="password"] {
+      input[type="password"] {
       font-size: 2rem;
       letter-spacing: 1rem;
       text-align: center;
@@ -33,7 +33,7 @@
       margin-bottom: 1.2rem;
       border-radius: 0.8rem;
       border: 1px solid #ccc;
-      background: #f9fafc;
+        background: #e0e0e0;
       transition: box-shadow 0.2s;
     }
     input[type="password"]:focus {
@@ -82,7 +82,7 @@
 <body>
   <div class="container">
     <h2>Porton Familia HiVe</h2>
-    <input type="password" maxlength="4" id="codigo" placeholder="Código" autocomplete="one-time-code">
+    <input type="password" maxlength="4" id="codigo" autocomplete="one-time-code">
     <br>
     <button onclick="abrirPorton()">Abrir</button>
     <div id="msg"></div>
@@ -120,6 +120,9 @@
         if (restantes <= 0) {
           clearInterval(timerInterval);
           timerEl.textContent = 'Portón cerrado';
+          const msgEl = document.getElementById('msg');
+          msgEl.textContent = 'Portón cerrado';
+          msgEl.className = 'ok';
           progress.style.width = '0%';
           setTimeout(() => {
             timerEl.style.display = 'none';
