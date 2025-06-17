@@ -54,8 +54,8 @@ function codeAllowed(code) {
   const day = now.getDay();
   if (!code.days.includes(day)) return false;
   const cur = now.getHours() * 60 + now.getMinutes();
-  const startM = minutes(code.start);
-  const endM = minutes(code.end);
+  const startM = minutes(code.start_time);
+  const endM = minutes(code.end_time);
   if (startM <= endM) {
     return cur >= startM && cur <= endM;
   }
@@ -116,10 +116,10 @@ async function serveLogs(res) {
   res.end(JSON.stringify({ entries }));
 }
 
-async function appendLog(pin, user) {
+async function appendLog(pin, username) {
   const { error } = await supabase
     .from('logs')
-    .insert({ timestamp: new Date().toISOString(), pin, user });
+    .insert({ timestamp: new Date().toISOString(), pin, username });
   if (error) console.error('Error writing log:', error);
 }
 
@@ -160,7 +160,7 @@ async function handleOpen(req, res) {
         res.end(JSON.stringify({ ok: false, error: 'Código inválido o fuera de horario' }));
         return;
       }
-      await appendLog(pin, code.user);
+      await appendLog(pin, code.username);
       forwardWebhook(() => {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ ok: true }));
@@ -212,10 +212,10 @@ const server = http.createServer((req, res) => {
         const data = JSON.parse(body);
         const success = await saveCode({
           pin: String(data.pin),
-          user: data.user || '',
+          username: data.user || '',
           days: Array.isArray(data.days) ? data.days : [],
-          start: data.start || '00:00',
-          end: data.end || '23:59'
+          start_time: data.start || '00:00',
+          end_time: data.end || '23:59'
         });
         res.writeHead(success ? 200 : 500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ ok: success }));
@@ -236,10 +236,10 @@ const server = http.createServer((req, res) => {
       try {
         const data = JSON.parse(body);
         const updates = {
-          user: data.user || '',
+          username: data.user || '',
           days: Array.isArray(data.days) ? data.days : [],
-          start: data.start || '00:00',
-          end: data.end || '23:59'
+          start_time: data.start || '00:00',
+          end_time: data.end || '23:59'
         };
         const success = await updateCode(pin, updates);
         res.writeHead(success ? 200 : 500, { 'Content-Type': 'application/json' });
