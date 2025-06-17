@@ -81,7 +81,10 @@
 </head>
 <body>
   <div class="container">
-    <h2>Porton Familia HiVe</h2>
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <h2 style="margin:0">Porton Familia HiVe</h2>
+      <button onclick="openAdmin()" style="padding:0.3rem 0.8rem;font-size:0.9rem;">Admin</button>
+    </div>
     <input type="password" maxlength="4" id="codigo" autocomplete="one-time-code">
     <br>
     <button onclick="abrirPorton()">Abrir</button>
@@ -92,6 +95,16 @@
   <script>
     // Cambia esto por tu código de acceso real
     const CODIGO_CORRECTO = "7777"; // Código de acceso de la familia
+    const ADMIN_CODE = "3401";
+
+    function openAdmin() {
+      const input = prompt('Código de administrador:');
+      if (input === ADMIN_CODE) {
+        window.location.href = `/admin?code=${input}`;
+      } else if (input) {
+        alert('Código incorrecto');
+      }
+    }
 
     const DURACION_CIERRE = 38;
     let timerInterval;
