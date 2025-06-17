@@ -7,10 +7,14 @@
     "build": "echo 'No build needed for static site'"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.39.7"
+    "@supabase/supabase-js": "^2.39.7",
+    "serverless-http": "^3.2.0"
   },
-  "devDependencies": {},
-  "keywords": ["gate", "control", "netlify"],
+  "keywords": [
+    "gate",
+    "control",
+    "netlify"
+  ],
   "author": "",
   "license": "ISC"
 }
