@@ -79,11 +79,17 @@
       const data = await res.json();
       const tbody = document.querySelector('#log-table tbody');
       tbody.innerHTML = '';
-      data.entries.forEach(e => {
+      if (data.entries.length === 0) {
         const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${new Date(e.timestamp).toLocaleString()}</td><td>${e.user || 'Desconocido'}</td><td>${e.pin}</td>`;
+        tr.innerHTML = '<td colspan="3" class="text-center">Sin registros</td>';
         tbody.appendChild(tr);
-      });
+      } else {
+        data.entries.forEach(e => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td>${new Date(e.timestamp).toLocaleString()}</td><td>${e.user || 'Desconocido'}</td><td>${e.pin}</td>`;
+          tbody.appendChild(tr);
+        });
+      }
     }
 
     async function cargarCodigos() {
