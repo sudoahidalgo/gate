@@ -79,10 +79,10 @@ exports.handler = async (event, context) => {
       }
       await saveCode({
         pin,
-        user: data.user || '',
+        username: data.username || '',
         days: Array.isArray(data.days) ? data.days : [],
-        start: data.start || '00:00',
-        end: data.end || '23:59'
+        start_time: data.start_time || '00:00',
+        end_time: data.end_time || '23:59'
       });
       
       return {
@@ -96,10 +96,10 @@ exports.handler = async (event, context) => {
       const pin = decodeURIComponent(event.path.split('/').pop());
       const data = JSON.parse(event.body || '{}');
       await updateCode(pin, {
-        user: data.user || '',
+        username: data.username || '',
         days: Array.isArray(data.days) ? data.days : [],
-        start: data.start || '00:00',
-        end: data.end || '23:59'
+        start_time: data.start_time || '00:00',
+        end_time: data.end_time || '23:59'
       });
       return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };
     }
