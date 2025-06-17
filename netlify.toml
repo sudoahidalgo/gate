@@ -14,6 +14,11 @@
   status = 200
 
 [[redirects]]
+  from = "/codes/*"
+  to = "/.netlify/functions/codes/:splat"
+  status = 200
+
+[[redirects]]
   from = "/logs" 
   to = "/.netlify/functions/logs"
   status = 200
