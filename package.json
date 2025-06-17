@@ -4,11 +4,17 @@
   "description": "Gate control system for Netlify",
   "main": "index.html",
   "scripts": {
-    "build": "echo 'No build needed for static site'"
+    "build": "echo 'No build needed for static site'",
+    "test": "jest"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.7",
+    "dotenv": "^16.5.0",
     "serverless-http": "^3.2.0"
+  },
+  "devDependencies": {
+    "jest": "^30.0.0",
+    "supertest": "^7.1.1"
   },
   "keywords": [
     "gate",
