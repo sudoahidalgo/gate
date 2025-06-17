@@ -16,5 +16,10 @@
     "netlify"
   ],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "devDependencies": {
+    "dotenv": "^16.5.0",
+    "jest": "^30.0.0",
+    "supertest": "^7.1.1"
+  }
 }

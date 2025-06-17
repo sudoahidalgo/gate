@@ -18,8 +18,8 @@ function codeAllowed(code) {
   const day = now.getDay();
   if (!code.days.includes(day)) return false;
   const cur = now.getHours() * 60 + now.getMinutes();
-  const startM = minutes(code.start);
-  const endM = minutes(code.end);
+  const startM = minutes(code.start_time);
+  const endM = minutes(code.end_time);
   if (startM <= endM) {
     return cur >= startM && cur <= endM;
   }
@@ -36,10 +36,10 @@ async function pinAllowed(pin) {
   return codeAllowed(data) ? data : null;
 }
 
-async function appendLog(pin, user) {
+async function appendLog(pin, username) {
   const { error } = await supabase
     .from('logs')
-    .insert({ timestamp: new Date().toISOString(), pin, user });
+    .insert({ timestamp: new Date().toISOString(), pin, username });
   if (error) console.error('Error writing log:', error);
 }
 
@@ -101,7 +101,7 @@ exports.handler = async (event, context) => {
       };
     }
 
-    await appendLog(pin, code.user);
+    await appendLog(pin, code.username);
     await forwardWebhook();
     
     return {
