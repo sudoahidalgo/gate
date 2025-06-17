@@ -159,6 +159,12 @@
           method: 'POST'
         });
         if (res.ok) {
+          // registrar uso de forma local
+          await fetch('/log', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ pin: input })
+          });
           msg.textContent = '¡Listo! El portón se está abriendo.';
           msg.className = 'ok';
           iniciarTimer();
