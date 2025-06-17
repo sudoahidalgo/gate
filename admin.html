@@ -254,13 +254,24 @@
       padding: 1rem 1.5rem;
     }
 
-    .debug-info {
+  .debug-info {
       background: #f1f5f9;
       border-radius: 8px;
       padding: 0.75rem;
       font-family: monospace;
       font-size: 0.85rem;
       margin-top: 1rem;
+    }
+
+    .footer {
+      background: #f8f9fa;
+      color: #6c757d;
+      font-size: 0.9rem;
+    }
+
+    .footer-card {
+      border: none;
+      background: transparent;
     }
 
     @media (max-width: 768px) {
@@ -292,41 +303,6 @@
   </div>
 
   <div class="container">
-    <!-- Status Card -->
-    <div class="card">
-      <div class="card-header">
-        <h5 class="card-title">
-          <i class="fas fa-signal text-info"></i>
-          Estado del Sistema
-        </h5>
-      </div>
-      <div class="card-body">
-        <div class="row">
-          <div class="col-md-4">
-            <div class="d-flex align-items-center">
-              <span class="status-indicator status-online"></span>
-              <span>Netlify Activo</span>
-            </div>
-          </div>
-          <div class="col-md-4">
-            <div class="d-flex align-items-center" id="db-status">
-              <span class="status-indicator status-offline"></span>
-              <span>Verificando Base de Datos...</span>
-            </div>
-          </div>
-          <div class="col-md-4">
-            <div class="d-flex align-items-center">
-              <span class="status-indicator status-online"></span>
-              <span>Webhook Configurado</span>
-            </div>
-          </div>
-        </div>
-        <div id="debug-section" class="debug-info" style="display: none;">
-          <strong>Información de Debug:</strong>
-          <div id="debug-content"></div>
-        </div>
-      </div>
-    </div>
 
     <!-- Navigation Tabs -->
     <ul class="nav nav-tabs mt-4" id="adminTabs" role="tablist">
@@ -490,6 +466,45 @@
       </div>
     </div>
   </div>
+
+  <footer class="footer mt-5">
+    <div class="container">
+      <div class="card footer-card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-signal text-info"></i>
+            Estado del Sistema
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-4">
+              <div class="d-flex align-items-center">
+                <span class="status-indicator status-online"></span>
+                <span>Netlify Activo</span>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="d-flex align-items-center" id="db-status">
+                <span class="status-indicator status-offline"></span>
+                <span>Verificando Base de Datos...</span>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="d-flex align-items-center">
+                <span class="status-indicator status-online"></span>
+                <span>Webhook Configurado</span>
+              </div>
+            </div>
+          </div>
+          <div id="debug-section" class="debug-info" style="display: none;">
+            <strong>Información de Debug:</strong>
+            <div id="debug-content"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script>
