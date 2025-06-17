@@ -7,84 +7,41 @@ const { createClient } = require('@supabase/supabase-js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
-
-// Add validation for environment variables
-if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
-  console.error('Missing Supabase environment variables. Please check your .env file.');
-  console.error('Required: SUPABASE_URL and SUPABASE_SERVICE_KEY');
-}
-
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
 const CODES_FILE = path.join(__dirname, 'codes.json');
 
 async function loadCodes() {
-  try {
-    console.log('Loading codes from Supabase...');
-    const { data, error } = await supabase.from('codes').select('*');
-    if (error) {
-      console.error('Supabase error loading codes:', error.message);
-      // Fallback to local file if Supabase fails
-      try {
-        const localData = fs.readFileSync(CODES_FILE, 'utf8');
-        console.log('Falling back to local codes.json file');
-        return JSON.parse(localData);
-      } catch (fileError) {
-        console.error('Local file fallback failed:', fileError.message);
-        return [];
-      }
-    }
-    console.log(`Loaded ${data?.length || 0} codes from Supabase`);
-    return data || [];
-  } catch (err) {
-    console.error('Unexpected error loading codes:', err.message);
+  const { data, error } = await supabase.from('codes').select('*');
+  if (error) {
+    console.error('Error loading codes:', error);
     return [];
   }
+  return data || [];
 }
 
 async function saveCode(code) {
-  try {
-    console.log('Saving code to Supabase:', code.pin);
-    const { error } = await supabase.from('codes').insert(code);
-    if (error) {
-      console.error('Supabase error saving code:', error.message);
-      throw error;
-    }
-    console.log('Code saved successfully');
-  } catch (err) {
-    console.error('Error saving code:', err.message);
-    throw err;
-  }
+  const { error } = await supabase.from('codes').insert(code);
+  if (error) console.error('Error saving code:', error);
+  return !error;
 }
 
 async function updateCode(pin, updates) {
-  try {
-    console.log('Updating code:', pin);
-    const { error } = await supabase.from('codes').update(updates).eq('pin', pin);
-    if (error) {
-      console.error('Supabase error updating code:', error.message);
-      throw error;
-    }
-    console.log('Code updated successfully');
-  } catch (err) {
-    console.error('Error updating code:', err.message);
-    throw err;
-  }
+  const { error } = await supabase
+    .from('codes')
+    .update(updates)
+    .eq('pin', pin);
+  if (error) console.error('Error updating code:', error);
+  return !error;
 }
 
 async function deleteCode(pin) {
-  try {
-    console.log('Deleting code:', pin);
-    const { error } = await supabase.from('codes').delete().eq('pin', pin);
-    if (error) {
-      console.error('Supabase error deleting code:', error.message);
-      throw error;
-    }
-    console.log('Code deleted successfully');
-  } catch (err) {
-    console.error('Error deleting code:', err.message);
-    throw err;
-  }
+  const { error } = await supabase
+    .from('codes')
+    .delete()
+    .eq('pin', pin);
+  if (error) console.error('Error deleting code:', error);
+  return !error;
 }
 
 function minutes(t) {
@@ -97,8 +54,8 @@ function codeAllowed(code) {
   const day = now.getDay();
   if (!code.days.includes(day)) return false;
   const cur = now.getHours() * 60 + now.getMinutes();
-  const startM = minutes(code.start_time);
-  const endM = minutes(code.end_time);
+  const startM = minutes(code.start);
+  const endM = minutes(code.end);
   if (startM <= endM) {
     return cur >= startM && cur <= endM;
   }
@@ -106,31 +63,13 @@ function codeAllowed(code) {
 }
 
 async function pinAllowed(pin) {
-  try {
-    console.log('Checking PIN:', pin);
-    const { data, error } = await supabase
-      .from('codes')
-      .select('*')
-      .eq('pin', pin)
-      .single();
-    
-    if (error) {
-      console.error('Supabase error checking PIN:', error.message);
-      return null;
-    }
-    
-    if (!data) {
-      console.log('PIN not found in database');
-      return null;
-    }
-    
-    const allowed = codeAllowed(data);
-    console.log(`PIN ${pin} allowed:`, allowed);
-    return allowed ? data : null;
-  } catch (err) {
-    console.error('Unexpected error checking PIN:', err.message);
-    return null;
-  }
+  const { data, error } = await supabase
+    .from('codes')
+    .select('*')
+    .eq('pin', pin)
+    .single();
+  if (error || !data) return null;
+  return codeAllowed(data) ? data : null;
 }
 
 const WEBHOOK_URL = 'https://dyaxguerproyd2kte4awwggu9ylh6rsd.ui.nabu.casa/api/webhook/porton_martes';
@@ -160,71 +99,28 @@ function serveAdmin(res) {
 }
 
 async function readLogs() {
-  try {
-    console.log('Reading logs from Supabase...');
-    const { data, error } = await supabase
-      .from('logs')
-      .select('*')
-      .order('timestamp', { ascending: false })
-      .limit(50); // Limit to last 50 entries
-    
-    if (error) {
-      console.error('Supabase error reading logs:', error.message);
-      return [];
-    }
-    
-    console.log(`Found ${data?.length || 0} log entries`);
-    return data || [];
-  } catch (err) {
-    console.error('Unexpected error reading logs:', err.message);
+  const { data, error } = await supabase
+    .from('logs')
+    .select('*')
+    .order('timestamp', { ascending: false });
+  if (error) {
+    console.error('Error fetching logs:', error);
     return [];
   }
+  return data || [];
 }
 
 async function serveLogs(res) {
-  try {
-    const entries = await readLogs();
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ 
-      entries,
-      debug: {
-        supabaseUrl: SUPABASE_URL ? 'Set' : 'Missing',
-        supabaseKey: SUPABASE_SERVICE_KEY ? 'Set' : 'Missing'
-      }
-    }));
-  } catch (err) {
-    console.error('Error serving logs:', err.message);
-    res.writeHead(500, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ 
-      entries: [], 
-      error: err.message,
-      debug: {
-        supabaseUrl: SUPABASE_URL ? 'Set' : 'Missing',
-        supabaseKey: SUPABASE_SERVICE_KEY ? 'Set' : 'Missing'
-      }
-    }));
-  }
+  const entries = await readLogs();
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify({ entries }));
 }
 
-async function appendLog(pin, username) {
-  try {
-    console.log('Appending log entry:', { pin, username });
-    const { error } = await supabase
-      .from('logs')
-      .insert({ 
-        timestamp: new Date().toISOString(), 
-        pin, 
-        username: username || 'Unknown'
-      });
-    
-    if (error) {
-      console.error('Supabase error writing log:', error.message);
-    } else {
-      console.log('Log entry saved successfully');
-    }
-  } catch (err) {
-    console.error('Unexpected error writing log:', err.message);
-  }
+async function appendLog(pin, user) {
+  const { error } = await supabase
+    .from('logs')
+    .insert({ timestamp: new Date().toISOString(), pin, user });
+  if (error) console.error('Error writing log:', error);
 }
 
 function forwardWebhook(callback) {
@@ -258,33 +154,34 @@ async function handleOpen(req, res) {
     try {
       const data = JSON.parse(body);
       const pin = data.pin || 'unknown';
-      console.log('Open request for PIN:', pin);
-      
       const code = await pinAllowed(pin);
       if (!code) {
-        console.log('PIN rejected:', pin);
         res.writeHead(401, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ ok: false, error: 'Código inválido o fuera de horario' }));
         return;
       }
-      
-      console.log('PIN accepted, logging and forwarding webhook');
-      await appendLog(pin, code.username);
-      
+      await appendLog(pin, code.user);
       forwardWebhook(() => {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ ok: true }));
       });
     } catch (err) {
-      console.error('Error handling open request:', err.message);
       res.writeHead(400, { 'Content-Type': 'text/plain' });
       res.end('Invalid data');
     }
   });
 }
 
+function parseUrl(url) {
+  const parts = url.split('/').filter(part => part.length > 0);
+  return {
+    path: '/' + parts.join('/'),
+    segments: parts
+  };
+}
+
 const server = http.createServer((req, res) => {
-  console.log(`${req.method} ${req.url}`);
+  const { path: urlPath, segments } = parseUrl(req.url);
   
   if (req.method === 'GET' && req.url === '/') {
     serveIndex(res);
@@ -302,81 +199,74 @@ const server = http.createServer((req, res) => {
     loadCodes().then(codes => {
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify(codes));
-    }).catch(err => {
-      console.error('Error loading codes:', err.message);
-      res.writeHead(500, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: err.message }));
     });
     return;
   }
+  
+  // ADD new code
   if (req.method === 'POST' && req.url === '/codes') {
     let body = '';
     req.on('data', c => { body += c; });
     req.on('end', async () => {
       try {
         const data = JSON.parse(body);
-
-        const pin = String(data.pin || '').trim();
-        if (!/^[A-Za-z0-9]{4,10}$/.test(pin)) {
-          throw new Error('PIN must be 4-10 letters or numbers');
-        }
-
-        await saveCode({
-          pin,
-          username: data.user || '',
+        const success = await saveCode({
+          pin: String(data.pin),
+          user: data.user || '',
           days: Array.isArray(data.days) ? data.days : [],
-          start_time: data.start || '00:00',
-          end_time: data.end || '23:59'
+          start: data.start || '00:00',
+          end: data.end || '23:59'
         });
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ ok: true }));
-      } catch (err) {
-        console.error('Error saving code:', err.message);
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: err.message }));
+        res.writeHead(success ? 200 : 500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: success }));
+      } catch {
+        res.writeHead(400, { 'Content-Type': 'text/plain' });
+        res.end('Invalid data');
       }
     });
     return;
   }
-  if (req.method === 'PUT' && req.url.startsWith('/codes/')) {
-    const pin = decodeURIComponent(req.url.split('/')[2] || '');
+  
+  // UPDATE existing code
+  if (req.method === 'PUT' && segments[0] === 'codes' && segments[1]) {
+    const pin = segments[1];
     let body = '';
     req.on('data', c => { body += c; });
     req.on('end', async () => {
       try {
         const data = JSON.parse(body);
-        await updateCode(pin, {
-          username: data.user || '',
+        const updates = {
+          user: data.user || '',
           days: Array.isArray(data.days) ? data.days : [],
-          start_time: data.start || '00:00',
-          end_time: data.end || '23:59'
-        });
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ ok: true }));
-      } catch (err) {
-        console.error('Error updating code:', err.message);
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: err.message }));
+          start: data.start || '00:00',
+          end: data.end || '23:59'
+        };
+        const success = await updateCode(pin, updates);
+        res.writeHead(success ? 200 : 500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: success }));
+      } catch {
+        res.writeHead(400, { 'Content-Type': 'text/plain' });
+        res.end('Invalid data');
       }
     });
     return;
   }
-  if (req.method === 'DELETE' && req.url.startsWith('/codes/')) {
-    const pin = decodeURIComponent(req.url.split('/')[2] || '');
-    deleteCode(pin).then(() => {
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ ok: true }));
-    }).catch(err => {
-      console.error('Error deleting code:', err.message);
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: err.message }));
+  
+  // DELETE code
+  if (req.method === 'DELETE' && segments[0] === 'codes' && segments[1]) {
+    const pin = segments[1];
+    deleteCode(pin).then(success => {
+      res.writeHead(success ? 200 : 500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: success }));
     });
     return;
   }
+  
   if (req.method === 'POST' && req.url === '/open') {
     handleOpen(req, res);
     return;
   }
+  
   res.writeHead(404, { 'Content-Type': 'text/plain' });
   res.end('Not Found');
 });
@@ -385,8 +275,6 @@ const PORT = process.env.PORT || 3000;
 if (require.main === module) {
   server.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
-    console.log('Supabase URL:', SUPABASE_URL ? 'Set' : 'Missing');
-    console.log('Supabase Key:', SUPABASE_SERVICE_KEY ? 'Set' : 'Missing');
   });
 }
 
