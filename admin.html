@@ -328,39 +328,19 @@
       </div>
     </div>
 
-    <!-- Logs Card -->
-    <div class="card">
-      <div class="card-header">
-        <h5 class="card-title">
-          <i class="fas fa-history text-primary"></i>
-          Registro de Actividad
-          <span class="badge bg-primary ms-2" id="log-count">0</span>
-        </h5>
-      </div>
-      <div class="card-body">
-        <div class="table-responsive">
-          <table class="table" id="log-table">
-            <thead>
-              <tr>
-                <th><i class="fas fa-clock me-2"></i>Fecha y Hora</th>
-                <th><i class="fas fa-user me-2"></i>Usuario</th>
-                <th><i class="fas fa-key me-2"></i>PIN</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td colspan="3" class="text-center">
-                  <div class="loading-spinner me-2"></div>
-                  Cargando registros...
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
+    <!-- Navigation Tabs -->
+    <ul class="nav nav-tabs mt-4" id="adminTabs" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="codes-tab" data-bs-toggle="tab" data-bs-target="#codes" type="button" role="tab">Códigos</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="logs-tab" data-bs-toggle="tab" data-bs-target="#logs" type="button" role="tab">Registro de Actividad</button>
+      </li>
+    </ul>
+    <div class="tab-content pt-3">
+      <div class="tab-pane fade show active" id="codes" role="tabpanel" aria-labelledby="codes-tab">
 
-    <!-- Add Code Card -->
+        <!-- Add Code Card -->
     <div class="card">
       <div class="card-header">
         <h5 class="card-title">
@@ -373,9 +353,9 @@
           <div class="row mb-3">
             <div class="col-md-6">
               <label for="new-pin" class="form-label">
-                <i class="fas fa-key me-2"></i>PIN (4 dígitos)
+                <i class="fas fa-key me-2"></i>PIN (4-10 caracteres)
               </label>
-              <input type="text" class="form-control" id="new-pin" placeholder="Ej: 1234" maxlength="4" pattern="[0-9]{4}" required>
+              <input type="text" class="form-control" id="new-pin" placeholder="Ej: A123" minlength="4" maxlength="10" pattern="[A-Za-z0-9]{4,10}" required>
             </div>
             <div class="col-md-6">
               <label for="new-user" class="form-label">
@@ -472,6 +452,40 @@
               </tr>
             </tbody>
           </table>
+        </div>
+      </div>
+    </div>
+      <div class="tab-pane fade" id="logs" role="tabpanel" aria-labelledby="logs-tab">
+        <!-- Logs Card -->
+        <div class="card">
+          <div class="card-header">
+            <h5 class="card-title">
+              <i class="fas fa-history text-primary"></i>
+              Registro de Actividad
+              <span class="badge bg-primary ms-2" id="log-count">0</span>
+            </h5>
+          </div>
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="table" id="log-table">
+                <thead>
+                  <tr>
+                    <th><i class="fas fa-clock me-2"></i>Fecha y Hora</th>
+                    <th><i class="fas fa-user me-2"></i>Usuario</th>
+                    <th><i class="fas fa-key me-2"></i>PIN</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td colspan="3" class="text-center">
+                      <div class="loading-spinner me-2"></div>
+                      Cargando registros...
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -627,6 +641,9 @@
       
       try {
         const pin = document.getElementById('new-pin').value.trim();
+        if (pin.length < 4 || pin.length > 10) {
+          throw new Error('El PIN debe tener entre 4 y 10 caracteres');
+        }
         const user = document.getElementById('new-user').value.trim();
         const start = document.getElementById('hora-inicio').value;
         const end = document.getElementById('hora-fin').value;
@@ -660,7 +677,8 @@
           Código agregado exitosamente
           <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         `;
-        document.querySelector('.card-body').insertBefore(alert, document.getElementById('code-form'));
+        const formBody = document.getElementById('code-form').parentElement;
+        formBody.insertBefore(alert, document.getElementById('code-form'));
         
         setTimeout(() => alert.remove(), 5000);
         cargarCodigos();
@@ -674,7 +692,8 @@
           Error: ${error.message}
           <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         `;
-        document.querySelector('.card-body').insertBefore(alert, document.getElementById('code-form'));
+        const formBodyErr = document.getElementById('code-form').parentElement;
+        formBodyErr.insertBefore(alert, document.getElementById('code-form'));
         
         setTimeout(() => alert.remove(), 5000);
       } finally {
@@ -685,7 +704,7 @@
 
     // Input validation for PIN
     document.getElementById('new-pin').addEventListener('input', function(e) {
-      e.target.value = e.target.value.replace(/[^0-9]/g, '');
+      e.target.value = e.target.value.replace(/[^A-Za-z0-9]/g, '');
     });
 
     // Auto-refresh logs every 30 seconds

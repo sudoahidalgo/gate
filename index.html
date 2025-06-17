@@ -239,7 +239,7 @@
   <div class="main-container">
     <div class="container">
       <h2>Control de Acceso</h2>
-      <input type="password" maxlength="4" id="codigo" autocomplete="one-time-code" placeholder="••••">
+      <input type="text" minlength="4" maxlength="10" id="codigo" autocomplete="one-time-code" placeholder="Ingrese PIN">
       <button class="open-button" onclick="abrirPorton()" id="open-btn">
         <i class="fas fa-key"></i>
         <span>Abrir Portón</span>
@@ -304,8 +304,8 @@
       msg.textContent = '';
       msg.className = '';
       
-      if (input.length !== 4) {
-        msg.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Ingresá los 4 dígitos completos.';
+      if (input.length < 4 || input.length > 10) {
+        msg.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Ingresá entre 4 y 10 caracteres.';
         msg.className = 'err';
         return;
       }
@@ -364,11 +364,11 @@
 
     // Add some visual feedback for the input
     document.getElementById('codigo').addEventListener('input', function(e) {
-      // Only allow numbers
-      e.target.value = e.target.value.replace(/[^0-9]/g, '');
-      
-      // Add visual feedback when 4 digits are entered
-      if (e.target.value.length === 4) {
+      // Only allow letters and numbers
+      e.target.value = e.target.value.replace(/[^A-Za-z0-9]/g, '');
+
+      // Add visual feedback when minimum length reached
+      if (e.target.value.length >= 4) {
         e.target.style.borderColor = '#00c6ff';
         e.target.style.boxShadow = '0 0 0 2px #00c6ff55';
       } else {

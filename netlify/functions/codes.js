@@ -46,8 +46,16 @@ exports.handler = async (event, context) => {
 
     if (event.httpMethod === 'POST') {
       const data = JSON.parse(event.body);
+      const pin = String(data.pin || '').trim();
+      if (!/^[A-Za-z0-9]{4,10}$/.test(pin)) {
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({ error: 'PIN inválido' })
+        };
+      }
       await saveCode({
-        pin: String(data.pin),
+        pin,
         user: data.user || '',
         days: Array.isArray(data.days) ? data.days : [],
         start: data.start || '00:00',

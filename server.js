@@ -285,8 +285,14 @@ const server = http.createServer((req, res) => {
     req.on('end', async () => {
       try {
         const data = JSON.parse(body);
+
+        const pin = String(data.pin || '').trim();
+        if (!/^[A-Za-z0-9]{4,10}$/.test(pin)) {
+          throw new Error('PIN must be 4-10 letters or numbers');
+        }
+
         await saveCode({
-          pin: String(data.pin),
+          pin,
           username: data.user || '',
           days: Array.isArray(data.days) ? data.days : [],
           start_time: data.start || '00:00',
