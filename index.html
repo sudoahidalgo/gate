@@ -104,22 +104,44 @@
       font-size: 1.8rem;
     }
 
-    input[type="password"] {
-      font-size: 2rem;
-      letter-spacing: 1rem;
-      text-align: center;
-      width: 8rem;
-      padding: 0.8rem;
-      margin-bottom: 1.2rem;
-      border-radius: 0.8rem;
-      border: 1px solid #ccc;
-      background: #e0e0e0;
-      transition: box-shadow 0.2s;
+    .md-input {
+      position: relative;
+      margin-bottom: 1.5rem;
+      width: 100%;
     }
 
-    input[type="password"]:focus {
+    .md-input input {
+      font-size: 1rem;
+      width: 100%;
+      padding: 1rem 0.75rem 0.25rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      background: #f5f5f5;
       outline: none;
-      box-shadow: 0 0 0 2px #009efd55;
+      transition: border-color 0.2s;
+    }
+
+    .md-input label {
+      position: absolute;
+      left: 0.75rem;
+      top: 1rem;
+      color: #777;
+      background: white;
+      padding: 0 0.25rem;
+      transition: all 0.2s ease;
+      pointer-events: none;
+    }
+
+    .md-input input:focus {
+      border-color: #3f51b5;
+    }
+
+    .md-input input:focus + label,
+    .md-input input:not(:placeholder-shown) + label {
+      top: -0.45rem;
+      left: 0.6rem;
+      font-size: 0.75rem;
+      color: #3f51b5;
     }
 
     .open-button {
@@ -239,7 +261,10 @@
   <div class="main-container">
     <div class="container">
       <h2>Control de Acceso</h2>
-      <input type="text" minlength="4" maxlength="10" id="codigo" autocomplete="one-time-code" placeholder="Ingrese PIN">
+      <div class="md-input">
+        <input type="text" minlength="4" maxlength="10" id="codigo" autocomplete="one-time-code" placeholder=" ">
+        <label for="codigo">Ingrese PIN</label>
+      </div>
       <button class="open-button" onclick="abrirPorton()" id="open-btn">
         <i class="fas fa-key"></i>
         <span>Abrir Portón</span>
