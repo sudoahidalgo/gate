@@ -3,153 +3,705 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Administración</title>
+  <title>Administración - Portón HiVe</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.css" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      --success-color: #10b981;
+      --danger-color: #ef4444;
+      --warning-color: #f59e0b;
+      --info-color: #3b82f6;
+      --dark-color: #1f2937;
+      --light-bg: #f8fafc;
+      --border-radius: 16px;
+      --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+      --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+      --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--light-bg);
+      color: var(--dark-color);
+      line-height: 1.6;
+    }
+
+    .main-header {
+      background: var(--primary-gradient);
+      color: white;
+      padding: 2rem 0;
+      margin-bottom: 2rem;
+      border-radius: 0 0 var(--border-radius) var(--border-radius);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .main-header h1 {
+      margin: 0;
+      font-weight: 700;
+      font-size: 2.5rem;
+    }
+
+    .main-header .subtitle {
+      opacity: 0.9;
+      font-size: 1.1rem;
+      margin-top: 0.5rem;
+    }
+
+    .card {
+      border: none;
+      border-radius: var(--border-radius);
+      box-shadow: var(--shadow-md);
+      transition: all 0.3s ease;
+      margin-bottom: 2rem;
+    }
+
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .card-header {
+      background: white;
+      border-bottom: 2px solid #e5e7eb;
+      border-radius: var(--border-radius) var(--border-radius) 0 0 !important;
+      padding: 1.5rem;
+    }
+
+    .card-title {
+      margin: 0;
+      font-weight: 600;
+      font-size: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .card-body {
+      padding: 1.5rem;
+    }
+
+    .form-control {
+      border-radius: 12px;
+      border: 2px solid #e5e7eb;
+      padding: 0.75rem 1rem;
+      transition: all 0.3s ease;
+      font-size: 0.95rem;
+    }
+
+    .form-control:focus {
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .btn {
+      border-radius: 12px;
+      padding: 0.75rem 1.5rem;
+      font-weight: 500;
+      transition: all 0.3s ease;
+      border: none;
+    }
+
+    .btn-primary {
+      background: var(--primary-gradient);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-md);
+      background: var(--primary-gradient);
+    }
+
+    .btn-outline-secondary {
+      border: 2px solid #e5e7eb;
+      color: var(--dark-color);
+    }
+
+    .btn-outline-secondary:hover {
+      background: #f3f4f6;
+      border-color: #d1d5db;
+    }
+
+    .table {
+      border-radius: var(--border-radius);
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .table th {
+      background: #f8fafc;
+      border: none;
+      font-weight: 600;
+      color: var(--dark-color);
+      padding: 1rem;
+    }
+
+    .table td {
+      border: none;
+      padding: 1rem;
+      vertical-align: middle;
+    }
+
+    .table tbody tr {
+      border-bottom: 1px solid #f1f5f9;
+    }
+
+    .table tbody tr:hover {
+      background: #f8fafc;
+    }
+
+    .badge {
+      padding: 0.5rem 0.75rem;
+      border-radius: 8px;
+      font-weight: 500;
+      font-size: 0.75rem;
+    }
+
+    .badge-day {
+      background: #dbeafe;
+      color: #1e40af;
+      margin: 2px;
+    }
+
+    .status-indicator {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 0.5rem;
+    }
+
+    .status-online {
+      background: var(--success-color);
+    }
+
+    .status-offline {
+      background: var(--danger-color);
+    }
+
+    .checkbox-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 1rem;
+      margin-top: 0.5rem;
+    }
+
+    .custom-checkbox {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem;
+      border: 2px solid #e5e7eb;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .custom-checkbox:hover {
+      border-color: #667eea;
+      background: #f8fafc;
+    }
+
+    .custom-checkbox input:checked + label {
+      color: #667eea;
+      font-weight: 500;
+    }
+
+    .custom-checkbox input:checked ~ .custom-checkbox {
+      border-color: #667eea;
+      background: #eef2ff;
+    }
+
+    .time-input-group {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: #6b7280;
+    }
+
+    .empty-state i {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      opacity: 0.5;
+    }
+
+    .loading-spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #667eea;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .alert {
+      border: none;
+      border-radius: 12px;
+      padding: 1rem 1.5rem;
+    }
+
+    .debug-info {
+      background: #f1f5f9;
+      border-radius: 8px;
+      padding: 0.75rem;
+      font-family: monospace;
+      font-size: 0.85rem;
+      margin-top: 1rem;
+    }
+
+    @media (max-width: 768px) {
+      .main-header h1 {
+        font-size: 2rem;
+      }
+      
+      .checkbox-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      
+      .time-input-group {
+        flex-direction: column;
+        align-items: stretch;
+      }
+    }
+  </style>
 </head>
-<body class="bg-light">
-  <div class="container py-4">
-    <h1 class="mb-4">Registro de Uso del Portón</h1>
-    <table class="table table-striped" id="log-table">
-      <thead>
-        <tr>
-          <th>Fecha y Hora</th>
-          <th>Usuario</th>
-          <th>PIN</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-
-    <hr class="my-4">
-
-    <h2 class="mt-4">Agregar Código</h2>
-    <form id="code-form" class="row gy-2 gx-3 align-items-end">
-      <div class="col-auto">
-        <input type="text" class="form-control" id="new-pin" placeholder="PIN" maxlength="4" required>
-      </div>
-      <div class="col-auto">
-        <input type="text" class="form-control" id="new-user" placeholder="Usuario" required>
-      </div>
-      <div class="col-12">
-        <label class="form-label d-block">Días habilitados</label>
-        <div id="dias" class="d-flex flex-wrap gap-3">
-          <div class="form-check"><input class="form-check-input" type="checkbox" value="0" id="d0"><label class="form-check-label" for="d0">Dom</label></div>
-          <div class="form-check"><input class="form-check-input" type="checkbox" value="1" id="d1"><label class="form-check-label" for="d1">Lun</label></div>
-          <div class="form-check"><input class="form-check-input" type="checkbox" value="2" id="d2"><label class="form-check-label" for="d2">Mar</label></div>
-          <div class="form-check"><input class="form-check-input" type="checkbox" value="3" id="d3"><label class="form-check-label" for="d3">Mié</label></div>
-          <div class="form-check"><input class="form-check-input" type="checkbox" value="4" id="d4"><label class="form-check-label" for="d4">Jue</label></div>
-          <div class="form-check"><input class="form-check-input" type="checkbox" value="5" id="d5"><label class="form-check-label" for="d5">Vie</label></div>
-          <div class="form-check"><input class="form-check-input" type="checkbox" value="6" id="d6"><label class="form-check-label" for="d6">Sáb</label></div>
+<body>
+  <div class="main-header">
+    <div class="container">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h1><i class="fas fa-door-open me-3"></i>Panel de Administración</h1>
+          <div class="subtitle">Sistema de Control de Portón - Familia HiVe</div>
+        </div>
+        <div>
+          <a href="/" class="btn btn-outline-light">
+            <i class="fas fa-home me-2"></i>Volver al Inicio
+          </a>
         </div>
       </div>
-      <div class="col-md-auto">
-        <label class="mdc-text-field mdc-text-field--outlined" id="hora-inicio-field">
-          <input type="text" class="mdc-text-field__input" id="hora-inicio" required>
-          <span class="mdc-notched-outline">
-            <span class="mdc-notched-outline__leading"></span>
-            <span class="mdc-notched-outline__notch">
-              <span class="mdc-floating-label">Inicio</span>
-            </span>
-            <span class="mdc-notched-outline__trailing"></span>
-          </span>
-        </label>
-      </div>
-      <div class="col-md-auto">
-        <label class="mdc-text-field mdc-text-field--outlined" id="hora-fin-field">
-          <input type="text" class="mdc-text-field__input" id="hora-fin" required>
-          <span class="mdc-notched-outline">
-            <span class="mdc-notched-outline__leading"></span>
-            <span class="mdc-notched-outline__notch">
-              <span class="mdc-floating-label">Fin</span>
-            </span>
-            <span class="mdc-notched-outline__trailing"></span>
-          </span>
-        </label>
-      </div>
-      <div class="col-12">
-        <button type="submit" class="btn btn-primary mt-2">Agregar</button>
-      </div>
-    </form>
-
-    <h2 class="mt-5">Códigos Actuales</h2>
-    <table class="table table-striped" id="code-table">
-      <thead>
-        <tr>
-          <th>PIN</th>
-          <th>Usuario</th>
-          <th>Días</th>
-          <th>Horario</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
+    </div>
   </div>
+
+  <div class="container">
+    <!-- Status Card -->
+    <div class="card">
+      <div class="card-header">
+        <h5 class="card-title">
+          <i class="fas fa-signal text-info"></i>
+          Estado del Sistema
+        </h5>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-4">
+            <div class="d-flex align-items-center">
+              <span class="status-indicator status-online"></span>
+              <span>Servidor Activo</span>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="d-flex align-items-center" id="db-status">
+              <span class="status-indicator status-offline"></span>
+              <span>Verificando Base de Datos...</span>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="d-flex align-items-center">
+              <span class="status-indicator status-online"></span>
+              <span>Webhook Configurado</span>
+            </div>
+          </div>
+        </div>
+        <div id="debug-section" class="debug-info" style="display: none;">
+          <strong>Información de Debug:</strong>
+          <div id="debug-content"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Logs Card -->
+    <div class="card">
+      <div class="card-header">
+        <h5 class="card-title">
+          <i class="fas fa-history text-primary"></i>
+          Registro de Actividad
+          <span class="badge bg-primary ms-2" id="log-count">0</span>
+        </h5>
+      </div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table" id="log-table">
+            <thead>
+              <tr>
+                <th><i class="fas fa-clock me-2"></i>Fecha y Hora</th>
+                <th><i class="fas fa-user me-2"></i>Usuario</th>
+                <th><i class="fas fa-key me-2"></i>PIN</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td colspan="3" class="text-center">
+                  <div class="loading-spinner me-2"></div>
+                  Cargando registros...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add Code Card -->
+    <div class="card">
+      <div class="card-header">
+        <h5 class="card-title">
+          <i class="fas fa-plus-circle text-success"></i>
+          Agregar Nuevo Código
+        </h5>
+      </div>
+      <div class="card-body">
+        <form id="code-form">
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label for="new-pin" class="form-label">
+                <i class="fas fa-key me-2"></i>PIN (4 dígitos)
+              </label>
+              <input type="text" class="form-control" id="new-pin" placeholder="Ej: 1234" maxlength="4" pattern="[0-9]{4}" required>
+            </div>
+            <div class="col-md-6">
+              <label for="new-user" class="form-label">
+                <i class="fas fa-user me-2"></i>Nombre de Usuario
+              </label>
+              <input type="text" class="form-control" id="new-user" placeholder="Ej: Juan Pérez" required>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">
+              <i class="fas fa-calendar-week me-2"></i>Días Habilitados
+            </label>
+            <div class="checkbox-grid" id="dias">
+              <div class="custom-checkbox">
+                <input class="form-check-input" type="checkbox" value="0" id="d0">
+                <label class="form-check-label" for="d0">Domingo</label>
+              </div>
+              <div class="custom-checkbox">
+                <input class="form-check-input" type="checkbox" value="1" id="d1">
+                <label class="form-check-label" for="d1">Lunes</label>
+              </div>
+              <div class="custom-checkbox">
+                <input class="form-check-input" type="checkbox" value="2" id="d2">
+                <label class="form-check-label" for="d2">Martes</label>
+              </div>
+              <div class="custom-checkbox">
+                <input class="form-check-input" type="checkbox" value="3" id="d3">
+                <label class="form-check-label" for="d3">Miércoles</label>
+              </div>
+              <div class="custom-checkbox">
+                <input class="form-check-input" type="checkbox" value="4" id="d4">
+                <label class="form-check-label" for="d4">Jueves</label>
+              </div>
+              <div class="custom-checkbox">
+                <input class="form-check-input" type="checkbox" value="5" id="d5">
+                <label class="form-check-label" for="d5">Viernes</label>
+              </div>
+              <div class="custom-checkbox">
+                <input class="form-check-input" type="checkbox" value="6" id="d6">
+                <label class="form-check-label" for="d6">Sábado</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label for="hora-inicio" class="form-label">
+                <i class="fas fa-clock me-2"></i>Hora de Inicio
+              </label>
+              <input type="time" class="form-control" id="hora-inicio" value="00:00" required>
+            </div>
+            <div class="col-md-6">
+              <label for="hora-fin" class="form-label">
+                <i class="fas fa-clock me-2"></i>Hora de Fin
+              </label>
+              <input type="time" class="form-control" id="hora-fin" value="23:59" required>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-lg">
+            <i class="fas fa-save me-2"></i>Agregar Código
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Current Codes Card -->
+    <div class="card">
+      <div class="card-header">
+        <h5 class="card-title">
+          <i class="fas fa-list text-warning"></i>
+          Códigos Actuales
+          <span class="badge bg-warning ms-2" id="code-count">0</span>
+        </h5>
+      </div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table" id="code-table">
+            <thead>
+              <tr>
+                <th><i class="fas fa-key me-2"></i>PIN</th>
+                <th><i class="fas fa-user me-2"></i>Usuario</th>
+                <th><i class="fas fa-calendar me-2"></i>Días</th>
+                <th><i class="fas fa-clock me-2"></i>Horario</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td colspan="4" class="text-center">
+                  <div class="loading-spinner me-2"></div>
+                  Cargando códigos...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script>
-    const inicioField = new mdc.textField.MDCTextField(document.getElementById('hora-inicio-field'));
-    const finField = new mdc.textField.MDCTextField(document.getElementById('hora-fin-field'));
-    flatpickr('#hora-inicio', {enableTime: true, noCalendar: true, dateFormat: 'H:i'});
-    flatpickr('#hora-fin', {enableTime: true, noCalendar: true, dateFormat: 'H:i'});
+    const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+    
     async function cargarLogs() {
-      const res = await fetch('/logs');
-      if (!res.ok) {
-        alert('No se pudo obtener el log');
-        return;
-      }
-      const data = await res.json();
-      const tbody = document.querySelector('#log-table tbody');
-      tbody.innerHTML = '';
-      if (data.entries.length === 0) {
-        const tr = document.createElement('tr');
-        tr.innerHTML = '<td colspan="3" class="text-center">Sin registros</td>';
-        tbody.appendChild(tr);
-      } else {
-        data.entries.forEach(e => {
-          const tr = document.createElement('tr');
-          tr.innerHTML = `<td>${new Date(e.timestamp).toLocaleString()}</td><td>${e.user || 'Desconocido'}</td><td>${e.pin}</td>`;
-          tbody.appendChild(tr);
-        });
+      try {
+        const res = await fetch('/logs');
+        const data = await res.json();
+        
+        // Update debug info
+        if (data.debug) {
+          const debugSection = document.getElementById('debug-section');
+          const debugContent = document.getElementById('debug-content');
+          debugContent.innerHTML = `
+            Supabase URL: ${data.debug.supabaseUrl}<br>
+            Supabase Key: ${data.debug.supabaseKey}
+          `;
+          if (data.debug.supabaseUrl === 'Missing' || data.debug.supabaseKey === 'Missing') {
+            debugSection.style.display = 'block';
+          }
+        }
+        
+        // Update DB status
+        const dbStatus = document.getElementById('db-status');
+        if (res.ok && data.entries) {
+          dbStatus.innerHTML = '<span class="status-indicator status-online"></span><span>Base de Datos Conectada</span>';
+        } else {
+          dbStatus.innerHTML = '<span class="status-indicator status-offline"></span><span>Error de Base de Datos</span>';
+        }
+        
+        const tbody = document.querySelector('#log-table tbody');
+        tbody.innerHTML = '';
+        
+        if (!data.entries || data.entries.length === 0) {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="3" class="empty-state">
+                <i class="fas fa-inbox"></i>
+                <div>No hay registros disponibles</div>
+                <small class="text-muted">Los accesos al portón aparecerán aquí</small>
+              </td>
+            </tr>
+          `;
+        } else {
+          data.entries.forEach(e => {
+            const tr = document.createElement('tr');
+            const date = new Date(e.timestamp);
+            tr.innerHTML = `
+              <td>
+                <i class="fas fa-calendar-alt me-2 text-muted"></i>
+                ${date.toLocaleString('es-ES')}
+              </td>
+              <td>
+                <i class="fas fa-user-circle me-2 text-muted"></i>
+                ${e.username || 'Usuario Desconocido'}
+              </td>
+              <td>
+                <span class="badge bg-secondary">${e.pin}</span>
+              </td>
+            `;
+            tbody.appendChild(tr);
+          });
+        }
+        
+        document.getElementById('log-count').textContent = data.entries?.length || 0;
+      } catch (error) {
+        console.error('Error cargando logs:', error);
+        const tbody = document.querySelector('#log-table tbody');
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="3" class="text-center text-danger">
+              <i class="fas fa-exclamation-triangle me-2"></i>
+              Error al cargar los registros: ${error.message}
+            </td>
+          </tr>
+        `;
+        
+        // Show debug section on error
+        document.getElementById('debug-section').style.display = 'block';
+        document.getElementById('debug-content').innerHTML = `Error: ${error.message}`;
       }
     }
 
     async function cargarCodigos() {
-      const res = await fetch('/codes');
-      if (!res.ok) return;
-      const data = await res.json();
-      const tbody = document.querySelector('#code-table tbody');
-      tbody.innerHTML = '';
-      data.forEach(c => {
-        const dias = Array.isArray(c.days) ? c.days.join(',') : '';
-        const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${c.pin}</td><td>${c.user}</td><td>${dias}</td><td>${c.start} - ${c.end}</td>`;
-        tbody.appendChild(tr);
-      });
+      try {
+        const res = await fetch('/codes');
+        if (!res.ok) throw new Error('Error en la respuesta del servidor');
+        
+        const data = await res.json();
+        const tbody = document.querySelector('#code-table tbody');
+        tbody.innerHTML = '';
+        
+        if (!data || data.length === 0) {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="4" class="empty-state">
+                <i class="fas fa-key"></i>
+                <div>No hay códigos configurados</div>
+                <small class="text-muted">Agrega el primer código usando el formulario de arriba</small>
+              </td>
+            </tr>
+          `;
+        } else {
+          data.forEach(c => {
+            const tr = document.createElement('tr');
+            const diasBadges = Array.isArray(c.days) 
+              ? c.days.map(d => `<span class="badge badge-day">${dayNames[d]}</span>`).join(' ')
+              : 'Sin días configurados';
+            
+            tr.innerHTML = `
+              <td><span class="badge bg-primary">${c.pin}</span></td>
+              <td>
+                <i class="fas fa-user-circle me-2 text-muted"></i>
+                ${c.username || 'Sin nombre'}
+              </td>
+              <td>${diasBadges}</td>
+              <td>
+                <i class="fas fa-clock me-2 text-muted"></i>
+                ${c.start_time} - ${c.end_time}
+              </td>
+            `;
+            tbody.appendChild(tr);
+          });
+        }
+        
+        document.getElementById('code-count').textContent = data?.length || 0;
+      } catch (error) {
+        console.error('Error cargando códigos:', error);
+        const tbody = document.querySelector('#code-table tbody');
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="4" class="text-center text-danger">
+              <i class="fas fa-exclamation-triangle me-2"></i>
+              Error al cargar los códigos: ${error.message}
+            </td>
+          </tr>
+        `;
+      }
     }
 
     document.getElementById('code-form').addEventListener('submit', async e => {
       e.preventDefault();
-      const pin = document.getElementById('new-pin').value.trim();
-      const user = document.getElementById('new-user').value.trim();
-      const start = document.getElementById('hora-inicio').value;
-      const end = document.getElementById('hora-fin').value;
-      const days = Array.from(document.querySelectorAll('#dias input:checked')).map(cb => parseInt(cb.value));
-      const res = await fetch('/codes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pin, user, start, end, days })
-      });
-      if (res.ok) {
+      
+      const submitBtn = e.target.querySelector('button[type="submit"]');
+      const originalText = submitBtn.innerHTML;
+      submitBtn.innerHTML = '<div class="loading-spinner me-2"></div>Guardando...';
+      submitBtn.disabled = true;
+      
+      try {
+        const pin = document.getElementById('new-pin').value.trim();
+        const user = document.getElementById('new-user').value.trim();
+        const start = document.getElementById('hora-inicio').value;
+        const end = document.getElementById('hora-fin').value;
+        const days = Array.from(document.querySelectorAll('#dias input:checked')).map(cb => parseInt(cb.value));
+        
+        if (days.length === 0) {
+          throw new Error('Debe seleccionar al menos un día');
+        }
+        
+        const res = await fetch('/codes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pin, user, start, end, days })
+        });
+        
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => null);
+          throw new Error(errorData?.error || 'Error del servidor');
+        }
+        
+        // Success
         document.getElementById('code-form').reset();
+        document.getElementById('hora-inicio').value = '00:00';
+        document.getElementById('hora-fin').value = '23:59';
+        
+        // Show success message
+        const alert = document.createElement('div');
+        alert.className = 'alert alert-success alert-dismissible fade show';
+        alert.innerHTML = `
+          <i class="fas fa-check-circle me-2"></i>
+          Código agregado exitosamente
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        document.querySelector('.card-body').insertBefore(alert, document.getElementById('code-form'));
+        
+        setTimeout(() => alert.remove(), 5000);
         cargarCodigos();
-      } else {
-        alert('No se pudo guardar el código');
+        
+      } catch (error) {
+        // Show error message
+        const alert = document.createElement('div');
+        alert.className = 'alert alert-danger alert-dismissible fade show';
+        alert.innerHTML = `
+          <i class="fas fa-exclamation-triangle me-2"></i>
+          Error: ${error.message}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        document.querySelector('.card-body').insertBefore(alert, document.getElementById('code-form'));
+        
+        setTimeout(() => alert.remove(), 5000);
+      } finally {
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
       }
     });
 
+    // Input validation for PIN
+    document.getElementById('new-pin').addEventListener('input', function(e) {
+      e.target.value = e.target.value.replace(/[^0-9]/g, '');
+    });
+
+    // Auto-refresh logs every 30 seconds
+    setInterval(cargarLogs, 30000);
+    
+    // Load initial data
     cargarLogs();
     cargarCodigos();
   </script>
