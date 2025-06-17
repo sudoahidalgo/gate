@@ -482,7 +482,7 @@
     
     async function cargarLogs() {
       try {
-        const res = await fetch('/.netlify/functions/logs');
+        const res = await fetch('/logs');
         const data = await res.json();
         
         // Update debug info
@@ -561,7 +561,7 @@
 
     async function cargarCodigos() {
       try {
-        const res = await fetch('/.netlify/functions/codes');
+        const res = await fetch('/codes');
         if (!res.ok) throw new Error('Error en la respuesta del servidor');
         
         const data = await res.json();
@@ -635,7 +635,7 @@
           throw new Error('Debe seleccionar al menos un día');
         }
         
-        const res = await fetch('/.netlify/functions/codes', {
+        const res = await fetch('/codes', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ pin, user, start, end, days })
