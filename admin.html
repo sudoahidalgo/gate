@@ -242,17 +242,17 @@
       
       try {
         const pin = document.getElementById('new-pin').value.trim();
-        const user = document.getElementById('new-user').value.trim();
-        const start = document.getElementById('hora-inicio').value;
-        const end = document.getElementById('hora-fin').value;
+        const username = document.getElementById('new-user').value.trim();
+        const start_time = document.getElementById('hora-inicio').value;
+        const end_time = document.getElementById('hora-fin').value;
         const days = Array.from(document.querySelectorAll('#dias input:checked')).map(cb => parseInt(cb.value));
 
-        if (!pin || !user || !start || !end) {
+        if (!pin || !username || !start_time || !end_time) {
           alert('Por favor completa todos los campos');
           return;
         }
 
-        const data = { pin, user, start, end, days };
+        const data = { pin, username, start_time, end_time, days };
         console.log('Sending data:', data);
 
         let res;

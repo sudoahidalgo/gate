@@ -287,10 +287,10 @@ const server = http.createServer((req, res) => {
         
         const codeToSave = {
           pin: String(data.pin),
-          username: data.user || '',
+          username: data.username || '',
           days: Array.isArray(data.days) ? data.days : [],
-          start_time: data.start || '00:00',
-          end_time: data.end || '23:59'
+          start_time: data.start_time || '00:00',
+          end_time: data.end_time || '23:59'
         };
         console.log('💾 Code to save:', JSON.stringify(codeToSave, null, 2));
         
@@ -318,10 +318,10 @@ const server = http.createServer((req, res) => {
       try {
         const data = JSON.parse(body);
         const updates = {
-          username: data.user || '',
+          username: data.username || '',
           days: Array.isArray(data.days) ? data.days : [],
-          start_time: data.start || '00:00',
-          end_time: data.end || '23:59'
+          start_time: data.start_time || '00:00',
+          end_time: data.end_time || '23:59'
         };
         const success = await updateCode(pin, updates);
         res.writeHead(success ? 200 : 500, { 'Content-Type': 'application/json' });
