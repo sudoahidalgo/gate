@@ -3,7 +3,49 @@ const https = require('https');
 const fs = require('fs');
 const path = require('path');
 
-const USERS = { '7777': 'Carlos Mendoza' };
+const CODES_FILE = path.join(__dirname, 'codes.json');
+
+function loadCodes() {
+  try {
+    const data = fs.readFileSync(CODES_FILE, 'utf8');
+    return JSON.parse(data);
+  } catch {
+    const defaults = [{
+      pin: '7777',
+      user: 'Carlos Mendoza',
+      days: [0,1,2,3,4,5,6],
+      start: '00:00',
+      end: '23:59'
+    }];
+    fs.writeFileSync(CODES_FILE, JSON.stringify(defaults, null, 2));
+    return defaults;
+  }
+}
+
+function saveCodes(codes) {
+  fs.writeFileSync(CODES_FILE, JSON.stringify(codes, null, 2));
+}
+
+function minutes(t) {
+  const [h,m] = t.split(':').map(Number);
+  return h*60 + m;
+}
+
+function pinAllowed(pin) {
+  const codes = loadCodes();
+  const code = codes.find(c => c.pin === pin);
+  if (!code) return false;
+  const now = new Date();
+  const day = now.getDay();
+  if (!code.days.includes(day)) return false;
+  const cur = now.getHours()*60 + now.getMinutes();
+  const startM = minutes(code.start);
+  const endM = minutes(code.end);
+  if (startM <= endM) {
+    return cur >= startM && cur <= endM;
+  }
+  return cur >= startM || cur <= endM;
+}
 
 const WEBHOOK_URL = 'https://dyaxguerproyd2kte4awwggu9ylh6rsd.ui.nabu.casa/api/webhook/porton_martes';
 
@@ -38,10 +80,13 @@ function readLogs(callback) {
       callback([]);
       return;
     }
+    const codes = loadCodes();
+    const map = {};
+    codes.forEach(c => { map[c.pin] = c.user; });
     const lines = data.trim().split('\n').filter(Boolean);
     const entries = lines.map(line => {
       const [timestampPart, pin] = line.split(' - ');
-      return { timestamp: timestampPart, pin, user: USERS[pin] };
+      return { timestamp: timestampPart, pin, user: map[pin] };
     });
     callback(entries);
   });
@@ -84,7 +129,7 @@ function forwardWebhook(callback) {
   req.end();
 }
 
-function handleLog(req, res) {
+function handleOpen(req, res) {
   let body = '';
   req.on('data', chunk => {
     body += chunk;
@@ -93,6 +138,11 @@ function handleLog(req, res) {
     try {
       const data = JSON.parse(body);
       const pin = data.pin || 'unknown';
+      if (!pinAllowed(pin)) {
+        res.writeHead(401, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, error: 'Código inválido o fuera de horario' }));
+        return;
+      }
       appendLog(pin);
       forwardWebhook(() => {
         res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -118,8 +168,37 @@ const server = http.createServer((req, res) => {
     serveLogs(res);
     return;
   }
-  if (req.method === 'POST' && req.url === '/log') {
-    handleLog(req, res);
+  if (req.method === 'GET' && req.url === '/codes') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(loadCodes()));
+    return;
+  }
+  if (req.method === 'POST' && req.url === '/codes') {
+    let body = '';
+    req.on('data', c => { body += c; });
+    req.on('end', () => {
+      try {
+        const data = JSON.parse(body);
+        const codes = loadCodes();
+        codes.push({
+          pin: String(data.pin),
+          user: data.user || '',
+          days: Array.isArray(data.days) ? data.days : [],
+          start: data.start || '00:00',
+          end: data.end || '23:59'
+        });
+        saveCodes(codes);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true }));
+      } catch {
+        res.writeHead(400, { 'Content-Type': 'text/plain' });
+        res.end('Invalid data');
+      }
+    });
+    return;
+  }
+  if (req.method === 'POST' && req.url === '/open') {
+    handleOpen(req, res);
     return;
   }
   res.writeHead(404, { 'Content-Type': 'text/plain' });

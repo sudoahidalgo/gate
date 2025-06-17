@@ -99,9 +99,6 @@
     <div class="progress"><div class="progress-bar" id="progress-bar"></div></div>
   </div>
   <script>
-    // Cambia esto por tu código de acceso real
-    const CODIGO_CORRECTO = "7777"; // Código de acceso de la familia
-
     const DURACION_CIERRE = 38;
     let timerInterval;
 
@@ -157,28 +154,19 @@
         msg.className = 'err';
         return;
       }
-      if (input !== CODIGO_CORRECTO) {
-        msg.textContent = 'Código incorrecto.';
-        msg.className = 'err';
-        return;
-      }
-      // Si el código es correcto, enviamos el POST al webhook
       try {
-        const res = await fetch('https://dyaxguerproyd2kte4awwggu9ylh6rsd.ui.nabu.casa/api/webhook/porton_martes', {
-          method: 'POST'
+        const res = await fetch('/open', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pin: input })
         });
         if (res.ok) {
-          // registrar uso de forma local
-          await fetch('/log', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ pin: input })
-          });
           msg.textContent = '¡Listo! El portón se está abriendo.';
           msg.className = 'ok';
           iniciarTimer();
         } else {
-          msg.textContent = 'Hubo un error. Intentá de nuevo.';
+          const data = await res.json().catch(() => null);
+          msg.textContent = (data && data.error) ? data.error : 'Hubo un error. Intentá de nuevo.';
           msg.className = 'err';
         }
       } catch {
