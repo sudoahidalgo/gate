@@ -17,6 +17,13 @@ async function readLogs() {
 }
 
 exports.handler = async (event, context) => {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
+    console.error('Missing Supabase configuration');
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: 'Missing Supabase configuration' })
+    };
+  }
   // Enable CORS
   const headers = {
     'Access-Control-Allow-Origin': '*',
