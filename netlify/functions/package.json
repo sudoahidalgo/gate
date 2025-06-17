@@ -1,0 +1,8 @@
+{
+  "name": "gate-functions",
+  "version": "1.0.0",
+  "description": "Netlify functions for gate control system",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.7"
+  }
+}
