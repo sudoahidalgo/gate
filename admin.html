@@ -31,6 +31,31 @@
     </thead>
     <tbody></tbody>
   </table>
+  <h2>Agregar Código</h2>
+  <form id="code-form">
+    <input type="text" id="new-pin" placeholder="PIN" maxlength="4" required>
+    <input type="text" id="new-user" placeholder="Usuario" required>
+    <div id="dias">
+      <label><input type="checkbox" value="0">Dom</label>
+      <label><input type="checkbox" value="1">Lun</label>
+      <label><input type="checkbox" value="2">Mar</label>
+      <label><input type="checkbox" value="3">Mié</label>
+      <label><input type="checkbox" value="4">Jue</label>
+      <label><input type="checkbox" value="5">Vie</label>
+      <label><input type="checkbox" value="6">Sáb</label>
+    </div>
+    <label>Inicio <input type="time" id="hora-inicio" required></label>
+    <label>Fin <input type="time" id="hora-fin" required></label>
+    <button type="submit">Agregar</button>
+  </form>
+
+  <h2>Códigos Actuales</h2>
+  <table id="code-table">
+    <thead>
+      <tr><th>PIN</th><th>Usuario</th><th>Días</th><th>Horario</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
   <script>
     async function cargarLogs() {
       const res = await fetch('/logs');
@@ -54,7 +79,41 @@
         tbody.appendChild(tr);
       });
     }
+    async function cargarCodigos() {
+      const res = await fetch('/codes');
+      if (!res.ok) return;
+      const data = await res.json();
+      const tbody = document.querySelector('#code-table tbody');
+      tbody.innerHTML = '';
+      data.forEach(c => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${c.pin}</td><td>${c.user}</td><td>${c.days.join(',')}</td><td>${c.start} - ${c.end}</td>`;
+        tbody.appendChild(tr);
+      });
+    }
+
+    document.getElementById('code-form').addEventListener('submit', async e => {
+      e.preventDefault();
+      const pin = document.getElementById('new-pin').value.trim();
+      const user = document.getElementById('new-user').value.trim();
+      const start = document.getElementById('hora-inicio').value;
+      const end = document.getElementById('hora-fin').value;
+      const days = Array.from(document.querySelectorAll('#dias input:checked')).map(cb => parseInt(cb.value));
+      const res = await fetch('/codes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pin, user, start, end, days })
+      });
+      if (res.ok) {
+        document.getElementById('code-form').reset();
+        cargarCodigos();
+      } else {
+        alert('No se pudo guardar el código');
+      }
+    });
+
     cargarLogs();
+    cargarCodigos();
   </script>
 </body>
 </html>
