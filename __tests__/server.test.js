@@ -1,5 +1,9 @@
 const request = require('supertest');
 
+// Set minimal environment variables so the server does not exit on load
+process.env.SUPABASE_URL = 'http://localhost';
+process.env.SUPABASE_SERVICE_KEY = 'test-key';
+
 jest.mock('@supabase/supabase-js', () => {
   return {
     createClient: jest.fn(() => ({
