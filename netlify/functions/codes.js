@@ -21,12 +21,28 @@ async function saveCode(code) {
   }
 }
 
+async function updateCode(pin, updates) {
+  const { error } = await supabase.from('codes').update(updates).eq('pin', pin);
+  if (error) {
+    console.error('Error updating code:', error);
+    throw new Error('Failed to update code');
+  }
+}
+
+async function deleteCode(pin) {
+  const { error } = await supabase.from('codes').delete().eq('pin', pin);
+  if (error) {
+    console.error('Error deleting code:', error);
+    throw new Error('Failed to delete code');
+  }
+}
+
 exports.handler = async (event, context) => {
   // Enable CORS
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
     'Content-Type': 'application/json'
   };
 
@@ -67,6 +83,24 @@ exports.handler = async (event, context) => {
         headers,
         body: JSON.stringify({ ok: true })
       };
+    }
+
+    if (event.httpMethod === 'PUT') {
+      const pin = decodeURIComponent(event.path.split('/').pop());
+      const data = JSON.parse(event.body || '{}');
+      await updateCode(pin, {
+        user: data.user || '',
+        days: Array.isArray(data.days) ? data.days : [],
+        start: data.start || '00:00',
+        end: data.end || '23:59'
+      });
+      return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };
+    }
+
+    if (event.httpMethod === 'DELETE') {
+      const pin = decodeURIComponent(event.path.split('/').pop());
+      await deleteCode(pin);
+      return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };
     }
 
     return {
