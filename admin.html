@@ -7,15 +7,6 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet">
-  <style>
-    .btn-sm {
-      padding: 0.25rem 0.5rem;
-      font-size: 0.875rem;
-    }
-    .action-buttons {
-      white-space: nowrap;
-    }
-  </style>
 </head>
 <body class="bg-light">
   <div class="container py-4">
@@ -116,84 +107,102 @@
     }
 
     async function cargarLogs() {
-      const res = await fetch('/logs');
-      if (!res.ok) {
-        alert('No se pudo obtener el log');
-        return;
-      }
-      const data = await res.json();
-      const tbody = document.querySelector('#log-table tbody');
-      tbody.innerHTML = '';
-      if (data.entries.length === 0) {
-        const tr = document.createElement('tr');
-        tr.innerHTML = '<td colspan="3" class="text-center">Sin registros</td>';
-        tbody.appendChild(tr);
-      } else {
-        data.entries.forEach(e => {
+      try {
+        const res = await fetch('/logs');
+        if (!res.ok) {
+          alert('No se pudo obtener el log');
+          return;
+        }
+        const data = await res.json();
+        const tbody = document.querySelector('#log-table tbody');
+        tbody.innerHTML = '';
+        if (data.entries.length === 0) {
           const tr = document.createElement('tr');
-          tr.innerHTML = `<td>${new Date(e.timestamp).toLocaleString()}</td><td>${e.username || 'Desconocido'}</td><td>${e.pin}</td>`;
+          tr.innerHTML = '<td colspan="3" class="text-center">Sin registros</td>';
           tbody.appendChild(tr);
-        });
+        } else {
+          data.entries.forEach(e => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td>${new Date(e.timestamp).toLocaleString()}</td><td>${e.username || 'Desconocido'}</td><td>${e.pin}</td>`;
+            tbody.appendChild(tr);
+          });
+        }
+      } catch (error) {
+        console.error('Error loading logs:', error);
+        alert('Error al cargar los logs');
       }
     }
 
     async function cargarCodigos() {
-      const res = await fetch('/codes');
-      if (!res.ok) return;
-      const data = await res.json();
-      const tbody = document.querySelector('#code-table tbody');
-      tbody.innerHTML = '';
-      data.forEach(c => {
-        const dias = getDayNames(c.days);
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${c.pin}</td>
-          <td>${c.username}</td>
-          <td>${dias}</td>
-          <td>${c.start_time} - ${c.end_time}</td>
-          <td class="action-buttons">
-            <button class="btn btn-sm btn-outline-primary me-1" onclick="editCode('${c.pin}')">Editar</button>
-            <button class="btn btn-sm btn-outline-danger" onclick="deleteCode('${c.pin}')">Eliminar</button>
-          </td>
-        `;
-        tbody.appendChild(tr);
-      });
+      try {
+        const res = await fetch('/codes');
+        if (!res.ok) {
+          console.error('Error loading codes:', res.status, res.statusText);
+          return;
+        }
+        const data = await res.json();
+        const tbody = document.querySelector('#code-table tbody');
+        tbody.innerHTML = '';
+        data.forEach(c => {
+          const dias = getDayNames(c.days);
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${c.pin}</td>
+            <td>${c.username}</td>
+            <td>${dias}</td>
+            <td>${c.start_time} - ${c.end_time}</td>
+            <td>
+              <button class="btn btn-sm btn-outline-primary me-1" onclick="editCode('${c.pin}')">Editar</button>
+              <button class="btn btn-sm btn-outline-danger" onclick="deleteCode('${c.pin}')">Eliminar</button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } catch (error) {
+        console.error('Error loading codes:', error);
+        alert('Error al cargar los códigos');
+      }
     }
 
     async function editCode(pin) {
-      const res = await fetch('/codes');
-      if (!res.ok) return;
-      const codes = await res.json();
-      const code = codes.find(c => c.pin === pin);
-      if (!code) return;
+      try {
+        const res = await fetch('/codes');
+        if (!res.ok) return;
+        const codes = await res.json();
+        const code = codes.find(c => c.pin === pin);
+        if (!code) return;
 
-      // Fill form with code data
-      document.getElementById('edit-pin').value = pin;
-      document.getElementById('new-pin').value = pin;
-      document.getElementById('new-pin').disabled = true;
-      document.getElementById('new-user').value = code.username;
-      document.getElementById('hora-inicio').value = code.start_time;
-      document.getElementById('hora-fin').value = code.end_time;
+        // Fill form with code data
+        document.getElementById('edit-pin').value = pin;
+        document.getElementById('new-pin').value = pin;
+        document.getElementById('new-pin').disabled = true;
+        document.getElementById('new-user').value = code.username;
+        document.getElementById('hora-inicio').value = code.start_time;
+        document.getElementById('hora-fin').value = code.end_time;
 
-      // Clear all checkboxes first
-      document.querySelectorAll('#dias input[type="checkbox"]').forEach(cb => cb.checked = false);
-      
-      // Check the appropriate days
-      if (Array.isArray(code.days)) {
-        code.days.forEach(day => {
-          const checkbox = document.getElementById(`d${day}`);
-          if (checkbox) checkbox.checked = true;
-        });
+        // Clear all checkboxes first
+        document.querySelectorAll('#dias input[type="checkbox"]').forEach(cb => cb.checked = false);
+        
+        // Check the appropriate days
+        if (Array.isArray(code.days)) {
+          code.days.forEach(day => {
+            const checkbox = document.getElementById(`d${day}`);
+            if (checkbox) checkbox.checked = true;
+          });
+        }
+
+        // Update UI for editing mode
+        isEditing = true;
+        document.getElementById('form-title').textContent = 'Editar Código';
+        document.getElementById('submit-btn').textContent = 'Actualizar';
+        document.getElementById('cancel-btn').style.display = 'inline-block';
+
+        // Scroll to form
+        document.getElementById('code-form').scrollIntoView({ behavior: 'smooth' });
+      } catch (error) {
+        console.error('Error editing code:', error);
+        alert('Error al editar el código');
       }
-
-      // Update UI for editing mode
-      isEditing = true;
-      document.getElementById('form-title').textContent = 'Editar Código';
-      document.getElementById('submit-btn').textContent = 'Actualizar';
-      document.getElementById('cancel-btn').style.display = 'inline-block';
-
-      // Scroll to form
-      document.getElementById('code-form').scrollIntoView({ behavior: 'smooth' });
     }
 
     function cancelEdit() {
@@ -211,53 +220,75 @@
         return;
       }
 
-      const res = await fetch(`/codes/${pin}`, {
-        method: 'DELETE'
-      });
+      try {
+        const res = await fetch(`/codes/${pin}`, {
+          method: 'DELETE'
+        });
 
-      if (res.ok) {
-        cargarCodigos();
-        alert('Código eliminado exitosamente');
-      } else {
+        if (res.ok) {
+          cargarCodigos();
+          alert('Código eliminado exitosamente');
+        } else {
+          alert('Error al eliminar el código');
+        }
+      } catch (error) {
+        console.error('Error deleting code:', error);
         alert('Error al eliminar el código');
       }
     }
 
     document.getElementById('code-form').addEventListener('submit', async e => {
       e.preventDefault();
-      const pin = document.getElementById('new-pin').value.trim();
-      const user = document.getElementById('new-user').value.trim();
-      const start = document.getElementById('hora-inicio').value;
-      const end = document.getElementById('hora-fin').value;
-      const days = Array.from(document.querySelectorAll('#dias input:checked')).map(cb => parseInt(cb.value));
+      
+      try {
+        const pin = document.getElementById('new-pin').value.trim();
+        const user = document.getElementById('new-user').value.trim();
+        const start = document.getElementById('hora-inicio').value;
+        const end = document.getElementById('hora-fin').value;
+        const days = Array.from(document.querySelectorAll('#dias input:checked')).map(cb => parseInt(cb.value));
 
-      const data = { pin, user, start, end, days };
+        if (!pin || !user || !start || !end) {
+          alert('Por favor completa todos los campos');
+          return;
+        }
 
-      let res;
-      if (isEditing) {
-        const editPin = document.getElementById('edit-pin').value;
-        res = await fetch(`/codes/${editPin}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data)
-        });
-      } else {
-        res = await fetch('/codes', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data)
-        });
-      }
+        const data = { pin, user, start, end, days };
+        console.log('Sending data:', data);
 
-      if (res.ok) {
-        cancelEdit();
-        cargarCodigos();
-        alert(isEditing ? 'Código actualizado exitosamente' : 'Código agregado exitosamente');
-      } else {
-        alert(isEditing ? 'No se pudo actualizar el código' : 'No se pudo guardar el código');
+        let res;
+        if (isEditing) {
+          const editPin = document.getElementById('edit-pin').value;
+          res = await fetch(`/codes/${editPin}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+          });
+        } else {
+          res = await fetch('/codes', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+          });
+        }
+
+        console.log('Response status:', res.status);
+        
+        if (res.ok) {
+          cancelEdit();
+          cargarCodigos();
+          alert(isEditing ? 'Código actualizado exitosamente' : 'Código agregado exitosamente');
+        } else {
+          const errorText = await res.text();
+          console.error('Server error:', errorText);
+          alert(`Error: ${res.status} - ${errorText}`);
+        }
+      } catch (error) {
+        console.error('Error submitting form:', error);
+        alert('Error al procesar la solicitud');
       }
     });
 
+    // Initialize
     cargarLogs();
     cargarCodigos();
   </script>
