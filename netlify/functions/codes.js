@@ -1,0 +1,77 @@
+const { createClient } = require('@supabase/supabase-js');
+
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+
+async function loadCodes() {
+  const { data, error } = await supabase.from('codes').select('*');
+  if (error) {
+    console.error('Error loading codes:', error);
+    return [];
+  }
+  return data || [];
+}
+
+async function saveCode(code) {
+  const { error } = await supabase.from('codes').insert(code);
+  if (error) {
+    console.error('Error saving code:', error);
+    throw new Error('Failed to save code');
+  }
+}
+
+exports.handler = async (event, context) => {
+  // Enable CORS
+  const headers = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Content-Type': 'application/json'
+  };
+
+  if (event.httpMethod === 'OPTIONS') {
+    return { statusCode: 200, headers, body: '' };
+  }
+
+  try {
+    if (event.httpMethod === 'GET') {
+      const codes = await loadCodes();
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify(codes)
+      };
+    }
+
+    if (event.httpMethod === 'POST') {
+      const data = JSON.parse(event.body);
+      await saveCode({
+        pin: String(data.pin),
+        user: data.user || '',
+        days: Array.isArray(data.days) ? data.days : [],
+        start: data.start || '00:00',
+        end: data.end || '23:59'
+      });
+      
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({ ok: true })
+      };
+    }
+
+    return {
+      statusCode: 405,
+      headers,
+      body: JSON.stringify({ error: 'Method not allowed' })
+    };
+  } catch (error) {
+    console.error('Function error:', error);
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({ error: 'Internal server error' })
+    };
+  }
+};
