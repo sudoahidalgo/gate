@@ -2,6 +2,11 @@ const http = require('http');
 const https = require('https');
 const fs = require('fs');
 const path = require('path');
+const { createClient } = require('@supabase/supabase-js');
+
+const SUPABASE_URL = process.env.SUPABASE_URL || '';
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || '';
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
 const CODES_FILE = path.join(__dirname, 'codes.json');
 
@@ -73,38 +78,38 @@ function serveAdmin(res) {
   });
 }
 
-function readLogs(callback) {
-  const file = path.join(__dirname, 'log.txt');
-  fs.readFile(file, 'utf8', (err, data) => {
-    if (err) {
-      callback([]);
-      return;
-    }
-    const codes = loadCodes();
-    const map = {};
-    codes.forEach(c => { map[c.pin] = c.user; });
-    const lines = data.trim().split('\n').filter(Boolean);
-    const entries = lines.map(line => {
-      const [timestampPart, pin] = line.split(' - ');
-      return { timestamp: timestampPart, pin, user: map[pin] };
-    });
-    callback(entries);
-  });
+async function readLogs() {
+  const { data, error } = await supabase
+    .from('logs')
+    .select('*')
+    .order('timestamp', { ascending: true });
+  if (error) {
+    console.error('Error reading logs:', error);
+    return [];
+  }
+  const codes = loadCodes();
+  const map = {};
+  codes.forEach(c => { map[c.pin] = c.user; });
+  return (data || []).map(row => ({
+    timestamp: row.timestamp,
+    pin: row.pin,
+    user: map[row.pin]
+  }));
 }
 
-function serveLogs(res) {
-  readLogs(entries => {
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ entries }));
-  });
+async function serveLogs(res) {
+  const entries = await readLogs();
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify({ entries }));
 }
 
 function appendLog(pin) {
-  const entry = `${new Date().toISOString()} - ${pin}\n`;
-  const file = path.join(__dirname, 'log.txt');
-  fs.appendFile(file, entry, err => {
-    if (err) console.error('Error writing log:', err);
-  });
+  supabase
+    .from('logs')
+    .insert([{ pin }])
+    .catch(err => {
+      console.error('Error writing log:', err);
+    });
 }
 
 function forwardWebhook(callback) {
