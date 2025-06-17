@@ -1,25 +1,16 @@
 {
-  "name": "gate",
+  "name": "gate-netlify",
   "version": "1.0.0",
-  "description": "",
-  "main": "server.js",
+  "description": "Gate control system for Netlify",
+  "main": "index.html",
   "scripts": {
-    "start": "node server.js",
-    "test": "jest"
+    "build": "echo 'No build needed for static site'"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.39.7",
-    "dotenv": "^16.3.1"
+    "@supabase/supabase-js": "^2.39.7"
   },
-  "devDependencies": {
-    "jest": "^29.7.0",
-    "supertest": "^6.3.3"
-  },
-  "jest": {
-    "testEnvironment": "node"
-  },
-  "keywords": [],
+  "devDependencies": {},
+  "keywords": ["gate", "control", "netlify"],
   "author": "",
-  "license": "ISC",
-  "type": "commonjs"
+  "license": "ISC"
 }
