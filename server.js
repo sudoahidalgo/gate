@@ -7,22 +7,54 @@ const { createClient } = require('@supabase/supabase-js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
+
+// Add validation for environment variables
+if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
+  console.error('Missing Supabase environment variables. Please check your .env file.');
+  console.error('Required: SUPABASE_URL and SUPABASE_SERVICE_KEY');
+}
+
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
 const CODES_FILE = path.join(__dirname, 'codes.json');
 
 async function loadCodes() {
-  const { data, error } = await supabase.from('codes').select('*');
-  if (error) {
-    console.error('Error loading codes:', error);
+  try {
+    console.log('Loading codes from Supabase...');
+    const { data, error } = await supabase.from('codes').select('*');
+    if (error) {
+      console.error('Supabase error loading codes:', error.message);
+      // Fallback to local file if Supabase fails
+      try {
+        const localData = fs.readFileSync(CODES_FILE, 'utf8');
+        console.log('Falling back to local codes.json file');
+        return JSON.parse(localData);
+      } catch (fileError) {
+        console.error('Local file fallback failed:', fileError.message);
+        return [];
+      }
+    }
+    console.log(`Loaded ${data?.length || 0} codes from Supabase`);
+    return data || [];
+  } catch (err) {
+    console.error('Unexpected error loading codes:', err.message);
     return [];
   }
-  return data || [];
 }
 
 async function saveCode(code) {
-  const { error } = await supabase.from('codes').insert(code);
-  if (error) console.error('Error saving code:', error);
+  try {
+    console.log('Saving code to Supabase:', code.pin);
+    const { error } = await supabase.from('codes').insert(code);
+    if (error) {
+      console.error('Supabase error saving code:', error.message);
+      throw error;
+    }
+    console.log('Code saved successfully');
+  } catch (err) {
+    console.error('Error saving code:', err.message);
+    throw err;
+  }
 }
 
 function minutes(t) {
@@ -35,8 +67,8 @@ function codeAllowed(code) {
   const day = now.getDay();
   if (!code.days.includes(day)) return false;
   const cur = now.getHours() * 60 + now.getMinutes();
-  const startM = minutes(code.start);
-  const endM = minutes(code.end);
+  const startM = minutes(code.start_time);
+  const endM = minutes(code.end_time);
   if (startM <= endM) {
     return cur >= startM && cur <= endM;
   }
@@ -44,13 +76,31 @@ function codeAllowed(code) {
 }
 
 async function pinAllowed(pin) {
-  const { data, error } = await supabase
-    .from('codes')
-    .select('*')
-    .eq('pin', pin)
-    .single();
-  if (error || !data) return null;
-  return codeAllowed(data) ? data : null;
+  try {
+    console.log('Checking PIN:', pin);
+    const { data, error } = await supabase
+      .from('codes')
+      .select('*')
+      .eq('pin', pin)
+      .single();
+    
+    if (error) {
+      console.error('Supabase error checking PIN:', error.message);
+      return null;
+    }
+    
+    if (!data) {
+      console.log('PIN not found in database');
+      return null;
+    }
+    
+    const allowed = codeAllowed(data);
+    console.log(`PIN ${pin} allowed:`, allowed);
+    return allowed ? data : null;
+  } catch (err) {
+    console.error('Unexpected error checking PIN:', err.message);
+    return null;
+  }
 }
 
 const WEBHOOK_URL = 'https://dyaxguerproyd2kte4awwggu9ylh6rsd.ui.nabu.casa/api/webhook/porton_martes';
@@ -80,28 +130,71 @@ function serveAdmin(res) {
 }
 
 async function readLogs() {
-  const { data, error } = await supabase
-    .from('logs')
-    .select('*')
-    .order('timestamp', { ascending: false });
-  if (error) {
-    console.error('Error fetching logs:', error);
+  try {
+    console.log('Reading logs from Supabase...');
+    const { data, error } = await supabase
+      .from('logs')
+      .select('*')
+      .order('timestamp', { ascending: false })
+      .limit(50); // Limit to last 50 entries
+    
+    if (error) {
+      console.error('Supabase error reading logs:', error.message);
+      return [];
+    }
+    
+    console.log(`Found ${data?.length || 0} log entries`);
+    return data || [];
+  } catch (err) {
+    console.error('Unexpected error reading logs:', err.message);
     return [];
   }
-  return data || [];
 }
 
 async function serveLogs(res) {
-  const entries = await readLogs();
-  res.writeHead(200, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify({ entries }));
+  try {
+    const entries = await readLogs();
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ 
+      entries,
+      debug: {
+        supabaseUrl: SUPABASE_URL ? 'Set' : 'Missing',
+        supabaseKey: SUPABASE_SERVICE_KEY ? 'Set' : 'Missing'
+      }
+    }));
+  } catch (err) {
+    console.error('Error serving logs:', err.message);
+    res.writeHead(500, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ 
+      entries: [], 
+      error: err.message,
+      debug: {
+        supabaseUrl: SUPABASE_URL ? 'Set' : 'Missing',
+        supabaseKey: SUPABASE_SERVICE_KEY ? 'Set' : 'Missing'
+      }
+    }));
+  }
 }
 
-async function appendLog(pin, user) {
-  const { error } = await supabase
-    .from('logs')
-    .insert({ timestamp: new Date().toISOString(), pin, user });
-  if (error) console.error('Error writing log:', error);
+async function appendLog(pin, username) {
+  try {
+    console.log('Appending log entry:', { pin, username });
+    const { error } = await supabase
+      .from('logs')
+      .insert({ 
+        timestamp: new Date().toISOString(), 
+        pin, 
+        username: username || 'Unknown'
+      });
+    
+    if (error) {
+      console.error('Supabase error writing log:', error.message);
+    } else {
+      console.log('Log entry saved successfully');
+    }
+  } catch (err) {
+    console.error('Unexpected error writing log:', err.message);
+  }
 }
 
 function forwardWebhook(callback) {
@@ -135,18 +228,25 @@ async function handleOpen(req, res) {
     try {
       const data = JSON.parse(body);
       const pin = data.pin || 'unknown';
+      console.log('Open request for PIN:', pin);
+      
       const code = await pinAllowed(pin);
       if (!code) {
+        console.log('PIN rejected:', pin);
         res.writeHead(401, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ ok: false, error: 'Código inválido o fuera de horario' }));
         return;
       }
-      await appendLog(pin, code.user);
+      
+      console.log('PIN accepted, logging and forwarding webhook');
+      await appendLog(pin, code.username);
+      
       forwardWebhook(() => {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ ok: true }));
       });
     } catch (err) {
+      console.error('Error handling open request:', err.message);
       res.writeHead(400, { 'Content-Type': 'text/plain' });
       res.end('Invalid data');
     }
@@ -154,6 +254,8 @@ async function handleOpen(req, res) {
 }
 
 const server = http.createServer((req, res) => {
+  console.log(`${req.method} ${req.url}`);
+  
   if (req.method === 'GET' && req.url === '/') {
     serveIndex(res);
     return;
@@ -170,6 +272,10 @@ const server = http.createServer((req, res) => {
     loadCodes().then(codes => {
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify(codes));
+    }).catch(err => {
+      console.error('Error loading codes:', err.message);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: err.message }));
     });
     return;
   }
@@ -181,16 +287,17 @@ const server = http.createServer((req, res) => {
         const data = JSON.parse(body);
         await saveCode({
           pin: String(data.pin),
-          user: data.user || '',
+          username: data.user || '',
           days: Array.isArray(data.days) ? data.days : [],
-          start: data.start || '00:00',
-          end: data.end || '23:59'
+          start_time: data.start || '00:00',
+          end_time: data.end || '23:59'
         });
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ ok: true }));
-      } catch {
-        res.writeHead(400, { 'Content-Type': 'text/plain' });
-        res.end('Invalid data');
+      } catch (err) {
+        console.error('Error saving code:', err.message);
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: err.message }));
       }
     });
     return;
@@ -207,6 +314,8 @@ const PORT = process.env.PORT || 3000;
 if (require.main === module) {
   server.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
+    console.log('Supabase URL:', SUPABASE_URL ? 'Set' : 'Missing');
+    console.log('Supabase Key:', SUPABASE_SERVICE_KEY ? 'Set' : 'Missing');
   });
 }
 
