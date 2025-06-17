@@ -7,7 +7,6 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root {
       --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -254,12 +253,13 @@
       padding: 1rem 1.5rem;
     }
 
-    .config-section {
-      background: #fff3cd;
-      border: 1px solid #ffeaa7;
-      border-radius: 12px;
-      padding: 1.5rem;
-      margin-bottom: 2rem;
+    .debug-info {
+      background: #f1f5f9;
+      border-radius: 8px;
+      padding: 0.75rem;
+      font-family: monospace;
+      font-size: 0.85rem;
+      margin-top: 1rem;
     }
 
     @media (max-width: 768px) {
@@ -291,30 +291,8 @@
   </div>
 
   <div class="container">
-    <!-- Configuration Section -->
-    <div class="config-section" id="config-section">
-      <h5><i class="fas fa-cog me-2"></i>Configuración de Supabase</h5>
-      <p>Para que funcione la administración, necesitas configurar tu conexión a Supabase:</p>
-      <div class="row">
-        <div class="col-md-6 mb-3">
-          <label for="supabase-url" class="form-label">Supabase URL</label>
-          <input type="text" class="form-control" id="supabase-url" placeholder="https://tu-proyecto.supabase.co">
-        </div>
-        <div class="col-md-6 mb-3">
-          <label for="supabase-key" class="form-label">Supabase Anon Key</label>
-          <input type="password" class="form-control" id="supabase-key" placeholder="Tu clave anónima de Supabase">
-        </div>
-      </div>
-      <button class="btn btn-primary" onclick="connectSupabase()">
-        <i class="fas fa-link me-2"></i>Conectar
-      </button>
-      <small class="text-muted d-block mt-2">
-        Esta información se guarda temporalmente en tu navegador y no se envía a ningún servidor.
-      </small>
-    </div>
-
     <!-- Status Card -->
-    <div class="card" id="main-content" style="display: none;">
+    <div class="card">
       <div class="card-header">
         <h5 class="card-title">
           <i class="fas fa-signal text-info"></i>
@@ -331,22 +309,26 @@
           </div>
           <div class="col-md-4">
             <div class="d-flex align-items-center" id="db-status">
-              <span class="status-indicator status-online"></span>
-              <span>Supabase Conectado</span>
+              <span class="status-indicator status-offline"></span>
+              <span>Verificando Base de Datos...</span>
             </div>
           </div>
           <div class="col-md-4">
             <div class="d-flex align-items-center">
               <span class="status-indicator status-online"></span>
-              <span>Sistema Funcional</span>
+              <span>Webhook Configurado</span>
             </div>
           </div>
+        </div>
+        <div id="debug-section" class="debug-info" style="display: none;">
+          <strong>Información de Debug:</strong>
+          <div id="debug-content"></div>
         </div>
       </div>
     </div>
 
     <!-- Logs Card -->
-    <div class="card" id="logs-card" style="display: none;">
+    <div class="card">
       <div class="card-header">
         <h5 class="card-title">
           <i class="fas fa-history text-primary"></i>
@@ -378,7 +360,7 @@
     </div>
 
     <!-- Add Code Card -->
-    <div class="card" id="add-code-card" style="display: none;">
+    <div class="card">
       <div class="card-header">
         <h5 class="card-title">
           <i class="fas fa-plus-circle text-success"></i>
@@ -461,7 +443,7 @@
     </div>
 
     <!-- Current Codes Card -->
-    <div class="card" id="codes-card" style="display: none;">
+    <div class="card">
       <div class="card-header">
         <h5 class="card-title">
           <i class="fas fa-list text-warning"></i>
@@ -496,74 +478,38 @@
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script>
-    let supabase = null;
     const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
     
-    // Check if we have saved credentials
-    window.onload = function() {
-      const savedUrl = localStorage.getItem('supabase_url');
-      const savedKey = localStorage.getItem('supabase_key');
-      
-      if (savedUrl && savedKey) {
-        document.getElementById('supabase-url').value = savedUrl;
-        document.getElementById('supabase-key').value = '••••••••••••';
-        connectSupabase();
-      }
-    };
-
-    function connectSupabase() {
-      const url = document.getElementById('supabase-url').value.trim();
-      const key = document.getElementById('supabase-key').value.trim();
-      
-      if (!url || !key) {
-        alert('Por favor ingresa tanto la URL como la clave de Supabase');
-        return;
-      }
-
-      // Don't overwrite with masked password
-      if (key !== '••••••••••••') {
-        localStorage.setItem('supabase_key', key);
-      }
-      localStorage.setItem('supabase_url', url);
-      
-      try {
-        const actualKey = key === '••••••••••••' ? localStorage.getItem('supabase_key') : key;
-        supabase = window.supabase.createClient(url, actualKey);
-        
-        // Hide config section and show main content
-        document.getElementById('config-section').style.display = 'none';
-        document.getElementById('main-content').style.display = 'block';
-        document.getElementById('logs-card').style.display = 'block';
-        document.getElementById('add-code-card').style.display = 'block';
-        document.getElementById('codes-card').style.display = 'block';
-        
-        // Load data
-        cargarLogs();
-        cargarCodigos();
-        
-      } catch (error) {
-        alert('Error conectando a Supabase: ' + error.message);
-      }
-    }
-    
     async function cargarLogs() {
-      if (!supabase) return;
-      
       try {
-        const { data, error } = await supabase
-          .from('logs')
-          .select('*')
-          .order('timestamp', { ascending: false })
-          .limit(50);
+        const res = await fetch('/.netlify/functions/logs');
+        const data = await res.json();
         
-        if (error) {
-          throw error;
+        // Update debug info
+        if (data.debug) {
+          const debugSection = document.getElementById('debug-section');
+          const debugContent = document.getElementById('debug-content');
+          debugContent.innerHTML = `
+            Supabase URL: ${data.debug.supabaseUrl}<br>
+            Supabase Key: ${data.debug.supabaseKey}
+          `;
+          if (data.debug.supabaseUrl === 'Missing' || data.debug.supabaseKey === 'Missing') {
+            debugSection.style.display = 'block';
+          }
+        }
+        
+        // Update DB status
+        const dbStatus = document.getElementById('db-status');
+        if (res.ok && data.entries) {
+          dbStatus.innerHTML = '<span class="status-indicator status-online"></span><span>Base de Datos Conectada</span>';
+        } else {
+          dbStatus.innerHTML = '<span class="status-indicator status-offline"></span><span>Error de Base de Datos</span>';
         }
         
         const tbody = document.querySelector('#log-table tbody');
         tbody.innerHTML = '';
         
-        if (!data || data.length === 0) {
+        if (!data.entries || data.entries.length === 0) {
           tbody.innerHTML = `
             <tr>
               <td colspan="3" class="empty-state">
@@ -574,7 +520,7 @@
             </tr>
           `;
         } else {
-          data.forEach(e => {
+          data.entries.forEach(e => {
             const tr = document.createElement('tr');
             const date = new Date(e.timestamp);
             tr.innerHTML = `
@@ -594,7 +540,7 @@
           });
         }
         
-        document.getElementById('log-count').textContent = data?.length || 0;
+        document.getElementById('log-count').textContent = data.entries?.length || 0;
       } catch (error) {
         console.error('Error cargando logs:', error);
         const tbody = document.querySelector('#log-table tbody');
@@ -606,22 +552,19 @@
             </td>
           </tr>
         `;
+        
+        // Show debug section on error
+        document.getElementById('debug-section').style.display = 'block';
+        document.getElementById('debug-content').innerHTML = `Error: ${error.message}`;
       }
     }
 
     async function cargarCodigos() {
-      if (!supabase) return;
-      
       try {
-        const { data, error } = await supabase
-          .from('codes')
-          .select('*')
-          .order('pin');
+        const res = await fetch('/.netlify/functions/codes');
+        if (!res.ok) throw new Error('Error en la respuesta del servidor');
         
-        if (error) {
-          throw error;
-        }
-        
+        const data = await res.json();
         const tbody = document.querySelector('#code-table tbody');
         tbody.innerHTML = '';
         
@@ -676,11 +619,6 @@
     document.getElementById('code-form').addEventListener('submit', async e => {
       e.preventDefault();
       
-      if (!supabase) {
-        alert('Por favor conecta a Supabase primero');
-        return;
-      }
-      
       const submitBtn = e.target.querySelector('button[type="submit"]');
       const originalText = submitBtn.innerHTML;
       submitBtn.innerHTML = '<div class="loading-spinner me-2"></div>Guardando...';
@@ -688,27 +626,24 @@
       
       try {
         const pin = document.getElementById('new-pin').value.trim();
-        const username = document.getElementById('new-user').value.trim();
-        const start_time = document.getElementById('hora-inicio').value;
-        const end_time = document.getElementById('hora-fin').value;
+        const user = document.getElementById('new-user').value.trim();
+        const start = document.getElementById('hora-inicio').value;
+        const end = document.getElementById('hora-fin').value;
         const days = Array.from(document.querySelectorAll('#dias input:checked')).map(cb => parseInt(cb.value));
         
         if (days.length === 0) {
           throw new Error('Debe seleccionar al menos un día');
         }
         
-        const { error } = await supabase
-          .from('codes')
-          .insert({
-            pin,
-            username,
-            days,
-            start_time,
-            end_time
-          });
+        const res = await fetch('/.netlify/functions/codes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pin, user, start, end, days })
+        });
         
-        if (error) {
-          throw error;
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => null);
+          throw new Error(errorData?.error || 'Error del servidor');
         }
         
         // Success
@@ -724,7 +659,7 @@
           Código agregado exitosamente
           <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         `;
-        document.querySelector('#add-code-card .card-body').insertBefore(alert, document.getElementById('code-form'));
+        document.querySelector('.card-body').insertBefore(alert, document.getElementById('code-form'));
         
         setTimeout(() => alert.remove(), 5000);
         cargarCodigos();
@@ -738,7 +673,7 @@
           Error: ${error.message}
           <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         `;
-        document.querySelector('#add-code-card .card-body').insertBefore(alert, document.getElementById('code-form'));
+        document.querySelector('.card-body').insertBefore(alert, document.getElementById('code-form'));
         
         setTimeout(() => alert.remove(), 5000);
       } finally {
@@ -753,9 +688,11 @@
     });
 
     // Auto-refresh logs every 30 seconds
-    setInterval(() => {
-      if (supabase) cargarLogs();
-    }, 30000);
+    setInterval(cargarLogs, 30000);
+    
+    // Load initial data
+    cargarLogs();
+    cargarCodigos();
   </script>
 </body>
 </html>
