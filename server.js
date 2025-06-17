@@ -57,6 +57,36 @@ async function saveCode(code) {
   }
 }
 
+async function updateCode(pin, updates) {
+  try {
+    console.log('Updating code:', pin);
+    const { error } = await supabase.from('codes').update(updates).eq('pin', pin);
+    if (error) {
+      console.error('Supabase error updating code:', error.message);
+      throw error;
+    }
+    console.log('Code updated successfully');
+  } catch (err) {
+    console.error('Error updating code:', err.message);
+    throw err;
+  }
+}
+
+async function deleteCode(pin) {
+  try {
+    console.log('Deleting code:', pin);
+    const { error } = await supabase.from('codes').delete().eq('pin', pin);
+    if (error) {
+      console.error('Supabase error deleting code:', error.message);
+      throw error;
+    }
+    console.log('Code deleted successfully');
+  } catch (err) {
+    console.error('Error deleting code:', err.message);
+    throw err;
+  }
+}
+
 function minutes(t) {
   const [h,m] = t.split(':').map(Number);
   return h*60 + m;
@@ -305,6 +335,41 @@ const server = http.createServer((req, res) => {
         res.writeHead(400, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: err.message }));
       }
+    });
+    return;
+  }
+  if (req.method === 'PUT' && req.url.startsWith('/codes/')) {
+    const pin = decodeURIComponent(req.url.split('/')[2] || '');
+    let body = '';
+    req.on('data', c => { body += c; });
+    req.on('end', async () => {
+      try {
+        const data = JSON.parse(body);
+        await updateCode(pin, {
+          username: data.user || '',
+          days: Array.isArray(data.days) ? data.days : [],
+          start_time: data.start || '00:00',
+          end_time: data.end || '23:59'
+        });
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true }));
+      } catch (err) {
+        console.error('Error updating code:', err.message);
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: err.message }));
+      }
+    });
+    return;
+  }
+  if (req.method === 'DELETE' && req.url.startsWith('/codes/')) {
+    const pin = decodeURIComponent(req.url.split('/')[2] || '');
+    deleteCode(pin).then(() => {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true }));
+    }).catch(err => {
+      console.error('Error deleting code:', err.message);
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: err.message }));
     });
     return;
   }

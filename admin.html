@@ -416,8 +416,8 @@
             </div>
           </div>
 
-          <button type="submit" class="btn btn-primary btn-lg">
-            <i class="fas fa-save me-2"></i>Agregar Código
+          <button type="submit" id="code-submit" class="btn btn-primary btn-lg">
+            <i class="fas fa-save me-2"></i><span id="submit-text">Agregar Código</span>
           </button>
         </form>
       </div>
@@ -441,11 +441,12 @@
                 <th><i class="fas fa-user me-2"></i>Usuario</th>
                 <th><i class="fas fa-calendar me-2"></i>Días</th>
                 <th><i class="fas fa-clock me-2"></i>Horario</th>
+                <th><i class="fas fa-wrench me-2"></i>Acciones</th>
               </tr>
             </thead>
             <tbody>
               <tr>
-                <td colspan="4" class="text-center">
+                <td colspan="5" class="text-center">
                   <div class="loading-spinner me-2"></div>
                   Cargando códigos...
                 </td>
@@ -494,6 +495,9 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script>
     const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+    let editPin = null;
+    let codesCache = [];
+    const submitText = document.getElementById('submit-text');
     
     async function cargarLogs() {
       try {
@@ -580,13 +584,14 @@
         if (!res.ok) throw new Error('Error en la respuesta del servidor');
         
         const data = await res.json();
+        codesCache = data || [];
         const tbody = document.querySelector('#code-table tbody');
         tbody.innerHTML = '';
         
         if (!data || data.length === 0) {
           tbody.innerHTML = `
             <tr>
-              <td colspan="4" class="empty-state">
+              <td colspan="5" class="empty-state">
                 <i class="fas fa-key"></i>
                 <div>No hay códigos configurados</div>
                 <small class="text-muted">Agrega el primer código usando el formulario de arriba</small>
@@ -596,10 +601,10 @@
         } else {
           data.forEach(c => {
             const tr = document.createElement('tr');
-            const diasBadges = Array.isArray(c.days) 
+            const diasBadges = Array.isArray(c.days)
               ? c.days.map(d => `<span class="badge badge-day">${dayNames[d]}</span>`).join(' ')
               : 'Sin días configurados';
-            
+
             tr.innerHTML = `
               <td><span class="badge bg-primary">${c.pin}</span></td>
               <td>
@@ -611,18 +616,54 @@
                 <i class="fas fa-clock me-2 text-muted"></i>
                 ${c.start_time} - ${c.end_time}
               </td>
+              <td>
+                <button class="btn btn-sm btn-outline-secondary me-2 edit-btn" data-pin="${c.pin}">
+                  <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-danger delete-btn" data-pin="${c.pin}">
+                  <i class="fas fa-trash-alt"></i>
+                </button>
+              </td>
             `;
             tbody.appendChild(tr);
           });
+
+          tbody.querySelectorAll('.delete-btn').forEach(btn => {
+            btn.addEventListener('click', async () => {
+              const pin = btn.dataset.pin;
+              if (!confirm(`¿Eliminar el código ${pin}?`)) return;
+              await fetch(`/codes/${pin}`, { method: 'DELETE' });
+              cargarCodigos();
+            });
+          });
+
+          tbody.querySelectorAll('.edit-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+              const pin = btn.dataset.pin;
+              const code = codesCache.find(c => c.pin === pin);
+              if (!code) return;
+              document.getElementById('new-pin').value = code.pin;
+              document.getElementById('new-pin').disabled = true;
+              document.getElementById('new-user').value = code.username || '';
+              document.getElementById('hora-inicio').value = code.start_time;
+              document.getElementById('hora-fin').value = code.end_time;
+              document.querySelectorAll('#dias input').forEach(cb => {
+                cb.checked = code.days.includes(parseInt(cb.value));
+              });
+              editPin = pin;
+              submitText.textContent = 'Guardar Cambios';
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+          });
         }
-        
+
         document.getElementById('code-count').textContent = data?.length || 0;
       } catch (error) {
         console.error('Error cargando códigos:', error);
         const tbody = document.querySelector('#code-table tbody');
         tbody.innerHTML = `
           <tr>
-            <td colspan="4" class="text-center text-danger">
+            <td colspan="5" class="text-center text-danger">
               <i class="fas fa-exclamation-triangle me-2"></i>
               Error al cargar los códigos: ${error.message}
             </td>
@@ -653,8 +694,10 @@
           throw new Error('Debe seleccionar al menos un día');
         }
         
-        const res = await fetch('/codes', {
-          method: 'POST',
+        const method = editPin ? 'PUT' : 'POST';
+        const url = editPin ? `/codes/${editPin}` : '/codes';
+        const res = await fetch(url, {
+          method,
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ pin, user, start, end, days })
         });
@@ -674,13 +717,16 @@
         alert.className = 'alert alert-success alert-dismissible fade show';
         alert.innerHTML = `
           <i class="fas fa-check-circle me-2"></i>
-          Código agregado exitosamente
+          ${editPin ? 'Código actualizado' : 'Código agregado exitosamente'}
           <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         `;
         const formBody = document.getElementById('code-form').parentElement;
         formBody.insertBefore(alert, document.getElementById('code-form'));
-        
+
         setTimeout(() => alert.remove(), 5000);
+        editPin = null;
+        document.getElementById('new-pin').disabled = editPin !== null;
+        submitText.textContent = 'Agregar Código';
         cargarCodigos();
         
       } catch (error) {
@@ -699,6 +745,7 @@
       } finally {
         submitBtn.innerHTML = originalText;
         submitBtn.disabled = false;
+        document.getElementById('new-pin').disabled = false;
       }
     });
 
