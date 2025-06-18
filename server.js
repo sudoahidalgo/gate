@@ -31,16 +31,18 @@ function minutes(t) {
 }
 
 function codeAllowed(code) {
-  // Use Costa Rica timezone (America/Costa_Rica)
-  const now = new Date().toLocaleString("en-US", {timeZone: "America/Costa_Rica"});
-  const localDate = new Date(now);
+  // Use Costa Rica timezone (UTC-6)
+  const now = new Date();
+  const costaRicaTime = new Date(now.getTime() - (6 * 60 * 60 * 1000)); // UTC-6
   
-  const day = localDate.getDay();
+  const day = costaRicaTime.getUTCDay();
   if (!code.days.includes(day)) return false;
   
-  const cur = localDate.getHours() * 60 + localDate.getMinutes();
+  const cur = costaRicaTime.getUTCHours() * 60 + costaRicaTime.getUTCMinutes();
   const startM = minutes(code.start);
   const endM = minutes(code.end);
+  
+  console.log(`Debug - Costa Rica time: ${costaRicaTime.toISOString()}, Day: ${day}, Current minutes: ${cur}, Start: ${startM}, End: ${endM}`);
   
   if (startM <= endM) {
     return cur >= startM && cur <= endM;
