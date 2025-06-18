@@ -18,11 +18,24 @@ async function loadCodes() {
     console.error('Error loading codes:', error);
     return [];
   }
-  return data || [];
+  return (data || []).map(c => ({
+    ...c,
+    start_time: c.start_time || c.start || '00:00',
+    end_time: c.end_time || c.end || '23:59'
+  }));
 }
 
 async function saveCode(code) {
-  const { error } = await supabase.from('codes').insert(code);
+  const start_time = code.start_time || code.start || '00:00';
+  const end_time = code.end_time || code.end || '23:59';
+  const fullCode = {
+    ...code,
+    start_time,
+    end_time,
+    start: start_time,
+    end: end_time
+  };
+  const { error } = await supabase.from('codes').insert(fullCode);
   if (error) console.error('Error saving code:', error);
 }
 
@@ -39,21 +52,24 @@ function codeAllowed(code) {
   // Use timezone-aware date
   const now = new Date(getCurrentTimeInTimezone());
   const day = now.getDay();
-  
+
+  const startTime = code.start_time || code.start || '00:00';
+  const endTime = code.end_time || code.end || '23:59';
+
   console.log(`Checking code for user ${code.user}:`);
   console.log(`  Current time (${TIMEZONE}): ${now.toLocaleString()}`);
   console.log(`  Current day: ${day} (0=Sunday, 6=Saturday)`);
   console.log(`  Allowed days: [${code.days.join(', ')}]`);
-  console.log(`  Allowed hours: ${code.start} - ${code.end}`);
-  
+  console.log(`  Allowed hours: ${startTime} - ${endTime}`);
+
   if (!code.days.includes(day)) {
     console.log(`  ❌ Day not allowed`);
     return false;
   }
-  
+
   const cur = now.getHours() * 60 + now.getMinutes();
-  const startM = minutes(code.start);
-  const endM = minutes(code.end);
+  const startM = minutes(startTime);
+  const endM = minutes(endTime);
   
   console.log(`  Current time in minutes: ${cur}`);
   console.log(`  Start time in minutes: ${startM}`);
@@ -227,13 +243,17 @@ async function serveDebug(res) {
     current_minute: now.getMinutes(),
     webhook_url: WEBHOOK_URL,
     codes_count: codes.length,
-    codes: codes.map(code => ({
-      pin: code.pin,
-      user: code.user,
-      days: code.days,
-      schedule: `${code.start} - ${code.end}`,
-      currently_allowed: codeAllowed(code)
-    }))
+    codes: codes.map(code => {
+      const startTime = code.start_time || code.start || '00:00';
+      const endTime = code.end_time || code.end || '23:59';
+      return {
+        pin: code.pin,
+        user: code.user,
+        days: code.days,
+        schedule: `${startTime} - ${endTime}`,
+        currently_allowed: codeAllowed(code)
+      };
+    })
   };
   
   res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -349,10 +369,10 @@ const server = http.createServer((req, res) => {
         const data = JSON.parse(body);
         await saveCode({
           pin: String(data.pin),
-          user: data.user || '',
+          user: data.user || data.username || '',
           days: Array.isArray(data.days) ? data.days : [],
-          start: data.start || '00:00',
-          end: data.end || '23:59'
+          start_time: data.start_time || data.start || '00:00',
+          end_time: data.end_time || data.end || '23:59'
         });
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ ok: true }));
