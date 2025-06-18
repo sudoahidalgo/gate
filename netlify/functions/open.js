@@ -56,7 +56,7 @@ async function appendLog(pin, user) {
 }
 
 function forwardWebhook() {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const url = new URL(WEBHOOK_URL);
     const options = {
       method: 'POST',
@@ -68,13 +68,22 @@ function forwardWebhook() {
     };
 
     const req = (url.protocol === 'https:' ? https : http).request(options, res => {
+      console.log(`Webhook response status: ${res.statusCode}`);
       res.on('data', () => {});
-      res.on('end', () => resolve());
+      res.on('end', () => {
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          resolve();
+        } else {
+          reject(new Error(`Webhook failed with status ${res.statusCode}`));
+        }
+      });
     });
+
     req.on('error', err => {
       console.error('Webhook error:', err);
-      resolve();
+      reject(err);
     });
+
     req.end();
   });
 }
@@ -126,8 +135,18 @@ exports.handler = async (event, context) => {
 
     console.log(`Netlify function: PIN ${pin} accepted for user ${code.user}`);
     await appendLog(pin, code.user);
-    await forwardWebhook();
-    
+
+    try {
+      await forwardWebhook();
+    } catch (err) {
+      console.error('Webhook call failed:', err);
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({ ok: false, error: 'Error al abrir el port\u00f3n. Intenta de nuevo.' })
+      };
+    }
+
     return {
       statusCode: 200,
       headers,
