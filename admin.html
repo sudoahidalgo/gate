@@ -698,6 +698,7 @@
   <script>
     // ✅ URL de Railway configurada
     const BACKEND_URL = 'https://gate-production-d17a.up.railway.app';
+    const TZ = 'America/Costa_Rica';
 
     let allLogs = [];
     let allCodes = [];
@@ -735,7 +736,7 @@
     }
 
     function addSystemLog(message, type = 'info') {
-      const timestamp = new Date().toLocaleString();
+      const timestamp = new Date().toLocaleString('es-CR', { timeZone: TZ });
       systemLogs.unshift(`[${timestamp}] [${type.toUpperCase()}] ${message}`);
       if (systemLogs.length > 100) systemLogs = systemLogs.slice(0, 100);
     }
@@ -852,7 +853,7 @@
               <span class="badge ${isToday ? 'bg-success' : 'bg-secondary'} me-2">
                 ${isToday ? 'HOY' : ''}
               </span>
-              ${date.toLocaleString()}
+              ${date.toLocaleString('es-CR', { timeZone: TZ })}
             </td>
             <td>
               <i class="fas fa-user-circle text-primary me-2"></i>
@@ -901,7 +902,7 @@
           <div class="d-flex justify-content-between align-items-center mb-2 p-2 bg-light rounded">
             <div>
               <strong>${log.user || 'Desconocido'}</strong><br>
-              <small class="text-muted">${new Date(log.timestamp).toLocaleString()}</small>
+              <small class="text-muted">${new Date(log.timestamp).toLocaleString('es-CR', { timeZone: TZ })}</small>
             </div>
             <span class="badge ${log.success !== false ? 'bg-success' : 'bg-danger'}">
               ${log.success !== false ? 'OK' : 'Error'}
