@@ -11,9 +11,9 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
 const CODES_FILE = path.join(__dirname, 'codes.json');
 
-// FUNCIÓN PARA AGREGAR HEADERS CORS
+// FUNCIÓN PARA AGREGAR HEADERS CORS (MÁS PERMISIVO PARA DEBUG)
 function setCorsHeaders(res) {
-  res.setHeader('Access-Control-Allow-Origin', 'https://gate2hive.netlify.app');
+  res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.setHeader('Access-Control-Allow-Credentials', 'true');
@@ -234,7 +234,26 @@ async function handleOpen(req, res) {
   });
 }
 
+// NUEVO: ENDPOINT TEST-WEBHOOK QUE TU WEBAPP ESTÁ BUSCANDO
+async function handleTestWebhook(req, res) {
+  setCorsHeaders(res);
+  console.log(`[DEBUG] ===== TEST WEBHOOK LLAMADO =====`);
+  
+  // Simular test de webhook sin activar realmente el portón
+  console.log(`[DEBUG] Test webhook - NO se activará el portón real`);
+  
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify({ 
+    ok: true, 
+    message: 'Test webhook funcionando correctamente',
+    timestamp: new Date().toISOString()
+  }));
+}
+
 const server = http.createServer((req, res) => {
+  // Log todas las requests para debug
+  console.log(`[DEBUG] ${req.method} ${req.url} from ${req.headers.origin || 'no-origin'}`);
+
   // MANEJAR OPTIONS REQUESTS (PREFLIGHT CORS)
   if (req.method === 'OPTIONS') {
     setCorsHeaders(res);
@@ -290,6 +309,13 @@ const server = http.createServer((req, res) => {
     handleOpen(req, res);
     return;
   }
+  // NUEVO: ENDPOINT TEST-WEBHOOK
+  if (req.method === 'POST' && req.url === '/test-webhook') {
+    handleTestWebhook(req, res);
+    return;
+  }
+  
+  console.log(`[DEBUG] ❌ Endpoint no encontrado: ${req.method} ${req.url}`);
   res.writeHead(404, { 'Content-Type': 'text/plain' });
   res.end('Not Found');
 });
@@ -298,6 +324,15 @@ const PORT = process.env.PORT || 3000;
 if (require.main === module) {
   server.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
+    console.log(`[DEBUG] CORS configurado para permitir todos los orígenes`);
+    console.log(`[DEBUG] Endpoints disponibles:`);
+    console.log(`[DEBUG] - GET /`);
+    console.log(`[DEBUG] - GET /admin`);
+    console.log(`[DEBUG] - GET /codes`);
+    console.log(`[DEBUG] - GET /logs`);
+    console.log(`[DEBUG] - POST /codes`);
+    console.log(`[DEBUG] - POST /open`);
+    console.log(`[DEBUG] - POST /test-webhook`);
   });
 }
 
