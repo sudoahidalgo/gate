@@ -1,37 +1,4 @@
-async function handleOpen(req, res) {
-  let body = '';
-  req.on('data', chunk => {
-    body += chunk;
-  });
-  req.on('end', async () => {
-    try {
-      const data = JSON.parse(body);
-      const pin = data.pin || 'unknown';
-      console.log(`Attempting to open with PIN: ${pin}`);
-      
-      const code = await pinAllowed(pin);
-      if (!code) {
-        console.log(`PIN ${pin} rejected - invalid or out of schedule`);
-        
-        // Check if PIN exists at all
-        const { data: allCodes, error } = await supabase
-          .from('codes')
-          .select('*')
-          .eq('pin', pin);
-        
-        if (error || !allCodes || allCodes.length === 0) {
-          console.log(`PIN ${pin} not found in database`);
-        } else {
-          console.log(`PIN ${pin} found but not allowed right now:`, allCodes[0]);
-        }
-        
-        res.writeHead(401, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ ok: false, error: 'Código inválido o fuera de horario' }));
-        return;
-      }
-      
-      console.log(`PIN ${pin} accepted for user: ${code.user}`);
-      await appendLog(pin, code.useconst http = require('http');
+const http = require('http');
 const https = require('https');
 const fs = require('fs');
 const path = require('path');
@@ -74,8 +41,6 @@ function codeAllowed(code) {
   const cur = costaRicaTime.getUTCHours() * 60 + costaRicaTime.getUTCMinutes();
   const startM = minutes(code.start);
   const endM = minutes(code.end);
-  
-  console.log(`Debug - Costa Rica time: ${costaRicaTime.toISOString()}, Day: ${day}, Current minutes: ${cur}, Start: ${startM}, End: ${endM}`);
   
   if (startM <= endM) {
     return cur >= startM && cur <= endM;
@@ -175,18 +140,37 @@ async function handleOpen(req, res) {
     try {
       const data = JSON.parse(body);
       const pin = data.pin || 'unknown';
+      console.log(`Attempting to open with PIN: ${pin}`);
+      
       const code = await pinAllowed(pin);
       if (!code) {
+        console.log(`PIN ${pin} rejected - invalid or out of schedule`);
+        
+        // Check if PIN exists at all
+        const { data: allCodes, error } = await supabase
+          .from('codes')
+          .select('*')
+          .eq('pin', pin);
+        
+        if (error || !allCodes || allCodes.length === 0) {
+          console.log(`PIN ${pin} not found in database`);
+        } else {
+          console.log(`PIN ${pin} found but not allowed right now:`, allCodes[0]);
+        }
+        
         res.writeHead(401, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ ok: false, error: 'Código inválido o fuera de horario' }));
         return;
       }
+      
+      console.log(`PIN ${pin} accepted for user: ${code.user}`);
       await appendLog(pin, code.user);
       forwardWebhook(() => {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ ok: true }));
       });
     } catch (err) {
+      console.error('Error in handleOpen:', err);
       res.writeHead(400, { 'Content-Type': 'text/plain' });
       res.end('Invalid data');
     }
