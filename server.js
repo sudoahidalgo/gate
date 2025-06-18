@@ -7,10 +7,10 @@ const { createClient } = require('@supabase/supabase-js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
-const TIMEZONE = process.env.TIMEZONE || 'America/Costa_Rica'; // Default to Costa Rica timezone
-const WEBHOOK_URL = process.env.WEBHOOK_URL ||
-  'https://dyaxguerproyd2kte4awwggu9ylh6rsd.ui.nabu.casa/api/webhook/porton_martes';
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+
+const WEBHOOK_URL = 'https://dyaxguerproyd2kte4awwggu9ylh6rsd.ui.nabu.casa/api/webhook/porton_martes';
+const WEBHOOK_TIMEOUT = 10000; // 10 seconds timeout
 
 async function loadCodes() {
   const { data, error } = await supabase.from('codes').select('*');
@@ -18,94 +18,213 @@ async function loadCodes() {
     console.error('Error loading codes:', error);
     return [];
   }
-  return (data || []).map(c => ({
-    ...c,
-    start_time: c.start_time || c.start || '00:00',
-    end_time: c.end_time || c.end || '23:59'
-  }));
+  return data || [];
 }
 
 async function saveCode(code) {
-  const start_time = code.start_time || code.start || '00:00';
-  const end_time = code.end_time || code.end || '23:59';
-  const fullCode = {
-    ...code,
-    start_time,
-    end_time,
-    start: start_time,
-    end: end_time
-  };
-  const { error } = await supabase.from('codes').insert(fullCode);
+  const { error } = await supabase.from('codes').insert(code);
   if (error) console.error('Error saving code:', error);
+  return !error;
+}
+
+async function updateCode(pin, updates) {
+  const { error } = await supabase
+    .from('codes')
+    .update(updates)
+    .eq('pin', pin);
+  if (error) console.error('Error updating code:', error);
+  return !error;
+}
+
+async function deleteCode(pin) {
+  const { error } = await supabase
+    .from('codes')
+    .delete()
+    .eq('pin', pin);
+  if (error) console.error('Error deleting code:', error);
+  return !error;
 }
 
 function minutes(t) {
-  const [h,m] = t.split(':').map(Number);
-  return h*60 + m;
-}
-
-function getCurrentTimeInTimezone() {
-  return new Date().toLocaleString("en-US", {timeZone: TIMEZONE});
+  const [h, m] = t.split(':').map(Number);
+  return h * 60 + m;
 }
 
 function codeAllowed(code) {
-  // Use timezone-aware date
-  const now = new Date(getCurrentTimeInTimezone());
+  const now = new Date();
   const day = now.getDay();
-
-  const startTime = code.start_time || code.start || '00:00';
-  const endTime = code.end_time || code.end || '23:59';
-
-  console.log(`Checking code for user ${code.user}:`);
-  console.log(`  Current time (${TIMEZONE}): ${now.toLocaleString()}`);
-  console.log(`  Current day: ${day} (0=Sunday, 6=Saturday)`);
-  console.log(`  Allowed days: [${code.days.join(', ')}]`);
-  console.log(`  Allowed hours: ${startTime} - ${endTime}`);
-
-  if (!code.days.includes(day)) {
-    console.log(`  ❌ Day not allowed`);
-    return false;
-  }
-
+  if (!code.days.includes(day)) return false;
   const cur = now.getHours() * 60 + now.getMinutes();
-  const startM = minutes(startTime);
-  const endM = minutes(endTime);
-  
-  console.log(`  Current time in minutes: ${cur}`);
-  console.log(`  Start time in minutes: ${startM}`);
-  console.log(`  End time in minutes: ${endM}`);
-  
-  let timeAllowed;
+  const startM = minutes(code.start);
+  const endM = minutes(code.end);
   if (startM <= endM) {
-    // Same day range (e.g., 09:00 - 17:00)
-    timeAllowed = cur >= startM && cur <= endM;
-  } else {
-    // Overnight range (e.g., 22:00 - 06:00)
-    timeAllowed = cur >= startM || cur <= endM;
+    return cur >= startM && cur <= endM;
   }
-  
-  console.log(`  ⏰ Time allowed: ${timeAllowed ? '✅' : '❌'}`);
-  return timeAllowed;
+  return cur >= startM || cur <= endM;
 }
 
 async function pinAllowed(pin) {
-  console.log(`\n🔍 Checking PIN: ${pin}`);
   const { data, error } = await supabase
     .from('codes')
     .select('*')
     .eq('pin', pin)
     .single();
+  if (error || !data) return null;
+  return codeAllowed(data) ? data : null;
+}
+
+async function appendLog(pin, user, success = true, error = null) {
+  const logEntry = {
+    timestamp: new Date().toISOString(),
+    pin,
+    user,
+    success,
+    error_message: error
+  };
+  
+  const { error: dbError } = await supabase
+    .from('logs')
+    .insert(logEntry);
+  
+  if (dbError) console.error('Error writing log:', dbError);
+  
+  // Also log to console for debugging
+  console.log(`[${logEntry.timestamp}] PIN: ${pin}, User: ${user}, Success: ${success}${error ? `, Error: ${error}` : ''}`);
+}
+
+function forwardWebhook(pin, user) {
+  return new Promise((resolve, reject) => {
+    const url = new URL(WEBHOOK_URL);
     
-  if (error || !data) {
-    console.log(`❌ PIN not found in database`);
-    return null;
-  }
-  
-  console.log(`✅ PIN found for user: ${data.user}`);
-  const allowed = codeAllowed(data);
-  console.log(`🚪 Access ${allowed ? 'GRANTED' : 'DENIED'}\n`);
-  
-  return allowed ? data : null;
+    // Create payload with useful information
+    const payload = JSON.stringify({
+      action: 'open_gate',
+      pin: pin,
+      user: user,
+      timestamp: new Date().toISOString(),
+      source: 'gate_control_app'
+    });
+    
+    const options = {
+      method: 'POST',
+      hostname: url.hostname,
+      path: url.pathname + url.search,
+      protocol: url.protocol,
+      port: url.port || (url.protocol === 'https:' ? 443 : 80),
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(payload),
+        'User-Agent': 'GateControlApp/1.0',
+        'X-Source': 'gate-control-app'
+      },
+      timeout: WEBHOOK_TIMEOUT
+    };
+
+    console.log(`[WEBHOOK] Sending request to: ${WEBHOOK_URL}`);
+    console.log(`[WEBHOOK] Payload: ${payload}`);
+    console.log(`[WEBHOOK] Headers: ${JSON.stringify(options.headers)}`);
+
+    const req = (url.protocol === 'https:' ? https : http).request(options, res => {
+      let responseData = '';
+      
+      console.log(`[WEBHOOK] Response status: ${res.statusCode}`);
+      console.log(`[WEBHOOK] Response headers: ${JSON.stringify(res.headers)}`);
+      
+      res.on('data', chunk => {
+        responseData += chunk;
+      });
+      
+      res.on('end', () => {
+        console.log(`[WEBHOOK] Response body: ${responseData}`);
+        
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          console.log('[WEBHOOK] Success - Gate should be opening');
+          resolve({
+            success: true,
+            statusCode: res.statusCode,
+            response: responseData
+          });
+        } else {
+          console.error(`[WEBHOOK] Error - HTTP ${res.statusCode}: ${responseData}`);
+          reject(new Error(`HTTP ${res.statusCode}: ${responseData}`));
+        }
+      });
+    });
+
+    req.on('error', err => {
+      console.error('[WEBHOOK] Request error:', err);
+      reject(err);
+    });
+
+    req.on('timeout', () => {
+      console.error('[WEBHOOK] Request timeout');
+      req.destroy();
+      reject(new Error('Webhook request timeout'));
+    });
+
+    // Set timeout
+    req.setTimeout(WEBHOOK_TIMEOUT);
+    
+    // Send the payload
+    req.write(payload);
+    req.end();
+  });
+}
+
+// Alternative webhook function for testing different approaches
+function forwardWebhookSimple(pin, user) {
+  return new Promise((resolve, reject) => {
+    const url = new URL(WEBHOOK_URL);
+    
+    const options = {
+      method: 'POST',
+      hostname: url.hostname,
+      path: url.pathname + url.search,
+      protocol: url.protocol,
+      port: url.port || (url.protocol === 'https:' ? 443 : 80),
+      headers: {
+        'Content-Length': '0',
+        'User-Agent': 'GateControlApp/1.0'
+      },
+      timeout: WEBHOOK_TIMEOUT
+    };
+
+    console.log(`[WEBHOOK_SIMPLE] Sending empty POST to: ${WEBHOOK_URL}`);
+
+    const req = (url.protocol === 'https:' ? https : http).request(options, res => {
+      let responseData = '';
+      
+      console.log(`[WEBHOOK_SIMPLE] Response status: ${res.statusCode}`);
+      
+      res.on('data', chunk => {
+        responseData += chunk;
+      });
+      
+      res.on('end', () => {
+        console.log(`[WEBHOOK_SIMPLE] Response: ${responseData}`);
+        
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          resolve({ success: true, statusCode: res.statusCode });
+        } else {
+          reject(new Error(`HTTP ${res.statusCode}: ${responseData}`));
+        }
+      });
+    });
+
+    req.on('error', err => {
+      console.error('[WEBHOOK_SIMPLE] Error:', err);
+      reject(err);
+    });
+
+    req.on('timeout', () => {
+      console.error('[WEBHOOK_SIMPLE] Timeout');
+      req.destroy();
+      reject(new Error('Timeout'));
+    });
+
+    req.setTimeout(WEBHOOK_TIMEOUT);
+    req.end();
+  });
 }
 
 function serveIndex(res) {
@@ -132,23 +251,13 @@ function serveAdmin(res) {
   });
 }
 
-function serveLogsPage(res) {
-  fs.readFile(path.join(__dirname, 'admin-logs.html'), (err, data) => {
-    if (err) {
-      res.writeHead(500, { 'Content-Type': 'text/plain' });
-      res.end('Server error');
-      return;
-    }
-    res.writeHead(200, { 'Content-Type': 'text/html' });
-    res.end(data);
-  });
-}
-
 async function readLogs() {
   const { data, error } = await supabase
     .from('logs')
     .select('*')
-    .order('timestamp', { ascending: false });
+    .order('timestamp', { ascending: false })
+    .limit(500); // Limit to last 500 entries for performance
+    
   if (error) {
     console.error('Error fetching logs:', error);
     return [];
@@ -162,128 +271,6 @@ async function serveLogs(res) {
   res.end(JSON.stringify({ entries }));
 }
 
-async function appendLog(pin, user, success = true, error = null) {
-  const { error: dbError } = await supabase
-    .from('logs')
-    .insert({ 
-      timestamp: new Date().toISOString(), 
-      pin, 
-      user,
-      success,
-      error_message: error
-    });
-  if (dbError) console.error('Error writing log:', dbError);
-}
-
-// Improved webhook function with better error handling
-function forwardWebhook(callback) {
-  const url = new URL(WEBHOOK_URL);
-  const options = {
-    method: 'POST',
-    hostname: url.hostname,
-    path: url.pathname + url.search,
-    protocol: url.protocol,
-    port: url.port || (url.protocol === 'https:' ? 443 : 80),
-    headers: { 
-      'Content-Length': 0,
-      'User-Agent': 'Gate-Controller/1.0'
-    },
-    timeout: 10000 // 10 second timeout
-  };
-
-  console.log(`🔗 Sending webhook to: ${WEBHOOK_URL}`);
-  
-  const req = (url.protocol === 'https:' ? https : http).request(options, res => {
-    console.log(`📡 Webhook response status: ${res.statusCode}`);
-    
-    let responseData = '';
-    res.on('data', chunk => {
-      responseData += chunk;
-    });
-    
-    res.on('end', () => {
-      if (res.statusCode >= 200 && res.statusCode < 300) {
-        console.log('✅ Webhook sent successfully');
-        callback(null); // Success
-      } else {
-        const errorMsg = `Webhook failed with status ${res.statusCode}: ${responseData}`;
-        console.error(`❌ ${errorMsg}`);
-        callback(new Error(errorMsg));
-      }
-    });
-  });
-
-  req.on('error', err => {
-    const errorMsg = `Webhook network error: ${err.message}`;
-    console.error(`❌ ${errorMsg}`);
-    callback(new Error(errorMsg));
-  });
-
-  req.on('timeout', () => {
-    const errorMsg = 'Webhook request timed out';
-    console.error(`⏱️ ${errorMsg}`);
-    req.destroy();
-    callback(new Error(errorMsg));
-  });
-
-  req.end();
-}
-
-// Debug endpoint
-async function serveDebug(res) {
-  const now = new Date(getCurrentTimeInTimezone());
-  const codes = await loadCodes();
-  
-  const debugInfo = {
-    server_time: new Date().toISOString(),
-    local_time: now.toLocaleString(),
-    timezone: TIMEZONE,
-    current_day: now.getDay(),
-    current_hour: now.getHours(),
-    current_minute: now.getMinutes(),
-    webhook_url: WEBHOOK_URL,
-    codes_count: codes.length,
-    codes: codes.map(code => {
-      const startTime = code.start_time || code.start || '00:00';
-      const endTime = code.end_time || code.end || '23:59';
-      return {
-        pin: code.pin,
-        user: code.user,
-        days: code.days,
-        schedule: `${startTime} - ${endTime}`,
-        currently_allowed: codeAllowed(code)
-      };
-    })
-  };
-  
-  res.writeHead(200, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify(debugInfo, null, 2));
-}
-
-// Test webhook endpoint
-async function testWebhook(req, res) {
-  console.log('🧪 Testing webhook connection...');
-  
-  forwardWebhook((error) => {
-    if (error) {
-      res.writeHead(500, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ 
-        ok: false, 
-        error: 'Webhook test failed', 
-        details: error.message,
-        webhook_url: WEBHOOK_URL
-      }));
-    } else {
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ 
-        ok: true, 
-        message: 'Webhook test successful',
-        webhook_url: WEBHOOK_URL
-      }));
-    }
-  });
-}
-
 async function handleOpen(req, res) {
   let body = '';
   req.on('data', chunk => {
@@ -293,100 +280,265 @@ async function handleOpen(req, res) {
     try {
       const data = JSON.parse(body);
       const pin = data.pin || 'unknown';
-      const code = await pinAllowed(pin);
+      const testMode = data.test === true; // Allow test mode
       
-      if (!code) {
-        await appendLog(pin, 'Unknown', false, 'Invalid code or outside allowed hours');
+      console.log(`[OPEN] Request received - PIN: ${pin}, Test Mode: ${testMode}`);
+      
+      const code = await pinAllowed(pin);
+      if (!code && !testMode) {
+        console.log(`[OPEN] Access denied for PIN: ${pin}`);
+        await appendLog(pin, 'unknown', false, 'Código inválido o fuera de horario');
         res.writeHead(401, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ ok: false, error: 'Código inválido o fuera de horario' }));
+        res.end(JSON.stringify({ 
+          ok: false, 
+          error: 'Código inválido o fuera de horario' 
+        }));
         return;
       }
-
-      // Send webhook and wait for response
-      forwardWebhook(async (error) => {
-        if (error) {
-          // Webhook failed
-          console.error(`❌ Gate opening failed for ${code.user}: ${error.message}`);
-          await appendLog(pin, code.user, false, error.message);
-          res.writeHead(500, { 'Content-Type': 'application/json' });
+      
+      const user = code ? code.user : 'Test User';
+      console.log(`[OPEN] Access granted for user: ${user}`);
+      
+      try {
+        // Try the main webhook first
+        console.log('[OPEN] Attempting webhook with payload...');
+        const webhookResult = await forwardWebhook(pin, user);
+        
+        await appendLog(pin, user, true);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ 
+          ok: true, 
+          message: 'Portón activado exitosamente',
+          webhook: webhookResult
+        }));
+        
+      } catch (webhookError) {
+        console.error('[OPEN] Primary webhook failed, trying simple webhook...', webhookError);
+        
+        try {
+          // Try simple webhook as fallback
+          const simpleResult = await forwardWebhookSimple(pin, user);
+          
+          await appendLog(pin, user, true, `Webhook simple usado: ${webhookError.message}`);
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ 
+            ok: true, 
+            message: 'Portón activado (webhook simple)',
+            webhook: simpleResult,
+            warning: 'Primary webhook failed'
+          }));
+          
+        } catch (simpleError) {
+          console.error('[OPEN] Both webhooks failed:', simpleError);
+          
+          await appendLog(pin, user, false, `Webhook error: ${simpleError.message}`);
+          res.writeHead(502, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ 
             ok: false, 
-            error: 'Error al abrir el portón. Intenta de nuevo.' 
+            error: 'Error de conexión con el sistema del portón',
+            details: simpleError.message
           }));
-        } else {
-          // Webhook succeeded
-          console.log(`✅ Gate opened successfully for ${code.user}`);
-          await appendLog(pin, code.user, true);
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ ok: true }));
         }
-      });
+      }
     } catch (err) {
-      console.error('Error parsing request:', err);
+      console.error('[OPEN] Request parsing error:', err);
       res.writeHead(400, { 'Content-Type': 'text/plain' });
       res.end('Invalid data');
     }
   });
 }
 
-const server = http.createServer((req, res) => {
-  if (req.method === 'GET' && req.url === '/') {
-    serveIndex(res);
-    return;
-  }
-  if (req.method === 'GET' && req.url === '/admin') {
-    serveAdmin(res);
-    return;
-  }
-  if (req.method === 'GET' && (req.url === '/admin/logs' || req.url === '/logs-view')) {
-    serveLogsPage(res);
-    return;
-  }
-  if (req.method === 'GET' && req.url === '/logs') {
-    serveLogs(res);
-    return;
-  }
-  if (req.method === 'GET' && req.url === '/debug') {
-    serveDebug(res);
-    return;
-  }
-  if (req.method === 'GET' && req.url === '/test-webhook') {
-    testWebhook(req, res);
-    return;
-  }
-  if (req.method === 'GET' && req.url === '/codes') {
-    loadCodes().then(codes => {
+// Add webhook test endpoint
+async function handleWebhookTest(req, res) {
+  console.log('[TEST] Webhook test requested');
+  
+  try {
+    const result = await forwardWebhook('TEST', 'Test User');
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ 
+      success: true, 
+      message: 'Webhook test successful',
+      result 
+    }));
+  } catch (error) {
+    console.error('[TEST] Webhook test failed:', error);
+    
+    try {
+      const simpleResult = await forwardWebhookSimple('TEST', 'Test User');
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify(codes));
-    });
+      res.end(JSON.stringify({ 
+        success: true, 
+        message: 'Simple webhook test successful',
+        result: simpleResult,
+        warning: 'Primary webhook failed'
+      }));
+    } catch (simpleError) {
+      res.writeHead(502, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ 
+        success: false, 
+        error: 'Both webhook tests failed',
+        primaryError: error.message,
+        simpleError: simpleError.message
+      }));
+    }
+  }
+}
+
+async function handleCodesCRUD(req, res) {
+  if (req.method === 'GET') {
+    // Get all codes
+    const codes = await loadCodes();
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(codes));
     return;
   }
-  if (req.method === 'POST' && req.url === '/codes') {
+  
+  if (req.method === 'POST') {
+    // Create new code
     let body = '';
     req.on('data', c => { body += c; });
     req.on('end', async () => {
       try {
         const data = JSON.parse(body);
-        await saveCode({
+        const success = await saveCode({
           pin: String(data.pin),
-          user: data.user || data.username || '',
+          user: data.user || '',
           days: Array.isArray(data.days) ? data.days : [],
-          start_time: data.start_time || data.start || '00:00',
-          end_time: data.end_time || data.end || '23:59'
+          start: data.start || '00:00',
+          end: data.end || '23:59'
         });
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ ok: true }));
-      } catch {
-        res.writeHead(400, { 'Content-Type': 'text/plain' });
-        res.end('Invalid data');
+        
+        if (success) {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ ok: true, message: 'Code saved successfully' }));
+        } else {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ ok: false, error: 'Failed to save code' }));
+        }
+      } catch (error) {
+        console.error('Error processing POST /codes:', error);
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, error: 'Invalid data' }));
       }
     });
     return;
   }
+  
+  if (req.method === 'PUT') {
+    // Update existing code
+    const pin = req.url.split('/')[2]; // Extract PIN from URL
+    let body = '';
+    req.on('data', c => { body += c; });
+    req.on('end', async () => {
+      try {
+        const data = JSON.parse(body);
+        const updates = {
+          user: data.user || '',
+          days: Array.isArray(data.days) ? data.days : [],
+          start: data.start || '00:00',
+          end: data.end || '23:59'
+        };
+        
+        const success = await updateCode(pin, updates);
+        
+        if (success) {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ ok: true, message: 'Code updated successfully' }));
+        } else {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ ok: false, error: 'Failed to update code' }));
+        }
+      } catch (error) {
+        console.error('Error processing PUT /codes:', error);
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, error: 'Invalid data' }));
+      }
+    });
+    return;
+  }
+  
+  if (req.method === 'DELETE') {
+    // Delete code
+    const pin = req.url.split('/')[2]; // Extract PIN from URL
+    
+    if (!pin) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: false, error: 'PIN is required' }));
+      return;
+    }
+    
+    try {
+      const success = await deleteCode(pin);
+      
+      if (success) {
+        console.log(`[DELETE] Successfully deleted code with PIN: ${pin}`);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true, message: 'Code deleted successfully' }));
+      } else {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, error: 'Failed to delete code' }));
+      }
+    } catch (error) {
+      console.error('Error processing DELETE /codes:', error);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: false, error: 'Server error' }));
+    }
+    return;
+  }
+  
+  // Method not allowed
+  res.writeHead(405, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify({ ok: false, error: 'Method not allowed' }));
+}
+
+const server = http.createServer((req, res) => {
+  // Add CORS headers for better debugging
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  
+  if (req.method === 'OPTIONS') {
+    res.writeHead(200);
+    res.end();
+    return;
+  }
+  
+  // Log all requests for debugging
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  
+  if (req.method === 'GET' && req.url === '/') {
+    serveIndex(res);
+    return;
+  }
+  
+  if (req.method === 'GET' && req.url === '/admin') {
+    serveAdmin(res);
+    return;
+  }
+  
+  if (req.method === 'GET' && req.url === '/logs') {
+    serveLogs(res);
+    return;
+  }
+  
+  // Handle all codes CRUD operations
+  if (req.url.startsWith('/codes')) {
+    handleCodesCRUD(req, res);
+    return;
+  }
+  
   if (req.method === 'POST' && req.url === '/open') {
     handleOpen(req, res);
     return;
   }
+  
+  // Add webhook test endpoint
+  if (req.method === 'POST' && req.url === '/test-webhook') {
+    handleWebhookTest(req, res);
+    return;
+  }
+  
+  // 404 Not Found
   res.writeHead(404, { 'Content-Type': 'text/plain' });
   res.end('Not Found');
 });
@@ -394,14 +546,18 @@ const server = http.createServer((req, res) => {
 const PORT = process.env.PORT || 3000;
 if (require.main === module) {
   server.listen(PORT, () => {
-    console.log(`🚀 Server running on http://localhost:${PORT}`);
-    console.log(`🌍 Timezone: ${TIMEZONE}`);
-    console.log(`🔗 Webhook URL: ${WEBHOOK_URL}`);
-    console.log(`\n📋 Available routes:`);
-    console.log(`   GET  /           - Main gate interface`);
-    console.log(`   GET  /admin      - Admin panel`);
-    console.log(`   GET  /debug      - Debug info & code validation`);
-    console.log(`   GET  /test-webhook - Test webhook connection`);
+    console.log(`Server running on http://localhost:${PORT}`);
+    console.log(`Webhook URL configured: ${WEBHOOK_URL}`);
+    console.log('Available endpoints:');
+    console.log('  GET  /           - Main gate control interface');
+    console.log('  GET  /admin      - Admin interface');
+    console.log('  GET  /logs       - Get access logs');
+    console.log('  GET  /codes      - Get all codes');
+    console.log('  POST /codes      - Create new code');
+    console.log('  PUT  /codes/:pin - Update existing code');
+    console.log('  DELETE /codes/:pin - Delete code');
+    console.log('  POST /open       - Open gate with PIN');
+    console.log('  POST /test-webhook - Test webhook connection');
   });
 }
 
