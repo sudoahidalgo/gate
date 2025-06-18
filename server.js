@@ -38,7 +38,7 @@ function codeAllowed(code) {
   const now = new Date(getCurrentTimeInTimezone());
   const day = now.getDay();
   
-  const user = code.user || code.username || 'Unknown';
+  const user = code.user || 'Unknown';
   console.log(`Checking code for user ${user}:`);
   console.log(`  Current time (${TIMEZONE}): ${now.toLocaleString()}`);
   console.log(`  Current day: ${day} (0=Sunday, 6=Saturday)`);
@@ -84,7 +84,7 @@ async function pinAllowed(pin) {
     return null;
   }
   
-  console.log(`✅ PIN found for user: ${data.user || data.username}`);
+  console.log(`✅ PIN found for user: ${data.user || 'Unknown'}`);
   const allowed = codeAllowed(data);
   console.log(`🚪 Access ${allowed ? 'GRANTED' : 'DENIED'}\n`);
   
@@ -230,7 +230,7 @@ async function serveDebug(res) {
     codes_count: codes.length,
     codes: codes.map(code => ({
       pin: code.pin,
-      user: code.user || code.username,
+      user: code.user,
       days: code.days,
       schedule: `${code.start} - ${code.end}`,
       currently_allowed: codeAllowed(code)
@@ -285,7 +285,7 @@ async function handleOpen(req, res) {
 
       // Send webhook and wait for response
       forwardWebhook(async (error) => {
-        const user = code.user || code.username || 'Unknown';
+        const user = code.user || 'Unknown';
         if (error) {
           // Webhook failed
           console.error(`❌ Gate opening failed for ${user}: ${error.message}`);
