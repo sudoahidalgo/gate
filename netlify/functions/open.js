@@ -123,8 +123,9 @@ exports.handler = async (event, context) => {
       };
     }
 
-    console.log(`Netlify function: PIN ${pin} accepted for user ${code.user}`);
-    await appendLog(pin, code.user);
+    const user = code.user || code.username || 'Unknown';
+    console.log(`Netlify function: PIN ${pin} accepted for user ${user}`);
+    await appendLog(pin, user);
     await forwardWebhook();
     
     return {
