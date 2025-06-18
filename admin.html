@@ -10,19 +10,8 @@
 </head>
 <body class="bg-light">
   <div class="container py-4">
-    <h1 class="mb-4">Registro de Uso del Portón</h1>
-    <table class="table table-striped" id="log-table">
-      <thead>
-        <tr>
-          <th>Fecha y Hora</th>
-          <th>Usuario</th>
-          <th>PIN</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-
-    <hr class="my-4">
+    <h1 class="mb-4">Administración de Códigos</h1>
+    <a href="/logs-view" class="btn btn-outline-secondary mb-4">Ver Logs</a>
 
     <h2 class="mt-4" id="form-title">Agregar Código</h2>
     <form id="code-form" class="row gy-2 gx-3 align-items-end">
@@ -106,32 +95,6 @@
       return days.map(day => dayNames[day]).join(', ');
     }
 
-    async function cargarLogs() {
-      try {
-        const res = await fetch('/logs');
-        if (!res.ok) {
-          alert('No se pudo obtener el log');
-          return;
-        }
-        const data = await res.json();
-        const tbody = document.querySelector('#log-table tbody');
-        tbody.innerHTML = '';
-        if (data.entries.length === 0) {
-          const tr = document.createElement('tr');
-          tr.innerHTML = '<td colspan="3" class="text-center">Sin registros</td>';
-          tbody.appendChild(tr);
-        } else {
-          data.entries.forEach(e => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `<td>${new Date(e.timestamp).toLocaleString()}</td><td>${e.username || 'Desconocido'}</td><td>${e.pin}</td>`;
-            tbody.appendChild(tr);
-          });
-        }
-      } catch (error) {
-        console.error('Error loading logs:', error);
-        alert('Error al cargar los logs');
-      }
-    }
 
     async function cargarCodigos() {
       try {
@@ -289,7 +252,6 @@
     });
 
     // Initialize
-    cargarLogs();
     cargarCodigos();
   </script>
 </body>
