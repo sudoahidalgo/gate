@@ -25,7 +25,7 @@ function codeAllowed(code) {
   if (!code.days.includes(day)) return false;
   const cur = now.getHours() * 60 + now.getMinutes();
   
-  // Support both old and new column names
+  // Use new field names with fallback for older records
   const startTime = code.start_time || code.start || '00:00';
   const endTime = code.end_time || code.end || '23:59';
   
