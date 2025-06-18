@@ -1,26 +1,29 @@
 {
-  "name": "gate-netlify",
+  "name": "gate",
   "version": "1.0.0",
-  "description": "Gate control system for Netlify",
-  "main": "index.html",
+  "description": "Gate control system with webhook integration",
+  "main": "server.js",
   "scripts": {
-    "build": "echo 'No build needed for static site'",
+    "start": "node server.js",
+    "dev": "node server.js",
     "test": "jest"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.7",
-    "serverless-http": "^3.2.0"
+    "dotenv": "^16.3.1"
   },
   "devDependencies": {
-    "jest": "^30.0.0",
-    "supertest": "^7.1.1",
-    "dotenv": "^16.5.0"
+    "jest": "^29.7.0",
+    "supertest": "^6.3.3"
   },
-  "keywords": [
-    "gate",
-    "control",
-    "netlify"
-  ],
+  "jest": {
+    "testEnvironment": "node"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "keywords": ["gate", "control", "webhook", "supabase"],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "type": "commonjs"
 }
