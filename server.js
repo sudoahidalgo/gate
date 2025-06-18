@@ -50,17 +50,52 @@ function minutes(t) {
   return h * 60 + m;
 }
 
+// ---------------------------------------------------------------
+// Time validation helpers
+// ---------------------------------------------------------------
+// Use Costa Rica time (GMT-6) when validating codes. This avoids
+// discrepancies when the server is running in a different timezone.
 function codeAllowed(code) {
+  // Current time in Costa Rica
   const now = new Date();
-  const day = now.getDay();
-  if (!code.days.includes(day)) return false;
-  const cur = now.getHours() * 60 + now.getMinutes();
+  const utcTime = now.getTime() + now.getTimezoneOffset() * 60000;
+  const costaRicaOffset = -6; // GMT-6
+  const crTime = new Date(utcTime + costaRicaOffset * 3600000);
+
+  const day = crTime.getDay();
+  const cur = crTime.getHours() * 60 + crTime.getMinutes();
+
+  // Debug information for easier troubleshooting
+  console.log(`[DEBUG] Validando código ${code.pin}:`);
+  console.log(
+    `[DEBUG] Día actual (Costa Rica): ${day} (${['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'][day]})`
+  );
+  console.log(
+    `[DEBUG] Hora actual (Costa Rica): ${String(crTime.getHours()).padStart(2,'0')}:${String(crTime.getMinutes()).padStart(2,'0')}`
+  );
+  console.log(`[DEBUG] Días permitidos: ${code.days}`);
+  console.log(`[DEBUG] Horario permitido: ${code.start} - ${code.end}`);
+
+  if (!code.days.includes(day)) {
+    console.log('[DEBUG] ❌ Día no permitido');
+    return false;
+  }
+
   const startM = minutes(code.start);
   const endM = minutes(code.end);
+  let timeAllowed = false;
+
   if (startM <= endM) {
-    return cur >= startM && cur <= endM;
+    timeAllowed = cur >= startM && cur <= endM;
+  } else {
+    timeAllowed = cur >= startM || cur <= endM;
   }
-  return cur >= startM || cur <= endM;
+
+  console.log(
+    `[DEBUG] ${timeAllowed ? '✅' : '❌'} Horario ${timeAllowed ? 'permitido' : 'no permitido'}`
+  );
+
+  return timeAllowed;
 }
 
 async function pinAllowed(pin) {
@@ -73,9 +108,19 @@ async function pinAllowed(pin) {
   return codeAllowed(data) ? data : null;
 }
 
+// Store logs using Costa Rica time to keep reports consistent
 async function appendLog(pin, user, success = true, error = null) {
+  const now = new Date();
+  const utcTime = now.getTime() + now.getTimezoneOffset() * 60000;
+  const costaRicaOffset = -6; // GMT-6
+  const crTime = new Date(utcTime + costaRicaOffset * 3600000);
+
+  console.log(
+    `[DEBUG] Guardando log: ${user} (${pin}) a las ${crTime.toISOString()}`
+  );
+
   const logEntry = {
-    timestamp: new Date().toISOString(),
+    timestamp: crTime.toISOString(),
     pin,
     user,
     success,
