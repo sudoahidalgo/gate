@@ -111,7 +111,7 @@
           const tr = document.createElement('tr');
           tr.innerHTML = `
             <td>${c.pin}</td>
-            <td>${c.username}</td>
+            <td>${c.user}</td>
             <td>${dias}</td>
             <td>${c.start_time} - ${c.end_time}</td>
             <td>
@@ -139,7 +139,7 @@
         document.getElementById('edit-pin').value = pin;
         document.getElementById('new-pin').value = pin;
         document.getElementById('new-pin').disabled = true;
-        document.getElementById('new-user').value = code.username;
+        document.getElementById('new-user').value = code.user || code.username || '';
         document.getElementById('hora-inicio').value = code.start_time;
         document.getElementById('hora-fin').value = code.end_time;
 
@@ -205,17 +205,17 @@
       
       try {
         const pin = document.getElementById('new-pin').value.trim();
-        const username = document.getElementById('new-user').value.trim();
+        const user = document.getElementById('new-user').value.trim();
         const start_time = document.getElementById('hora-inicio').value;
         const end_time = document.getElementById('hora-fin').value;
         const days = Array.from(document.querySelectorAll('#dias input:checked')).map(cb => parseInt(cb.value));
 
-        if (!pin || !username || !start_time || !end_time) {
+        if (!pin || !user || !start_time || !end_time) {
           alert('Por favor completa todos los campos');
           return;
         }
 
-        const data = { pin, username, start_time, end_time, days };
+        const data = { pin, user, start_time, end_time, days };
         console.log('Sending data:', data);
 
         let res;

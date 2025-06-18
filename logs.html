@@ -41,7 +41,8 @@
         } else {
           data.entries.forEach(e => {
             const tr = document.createElement('tr');
-            tr.innerHTML = `<td>${new Date(e.timestamp).toLocaleString()}</td><td>${e.username || 'Desconocido'}</td><td>${e.pin}</td>`;
+            const user = e.user || e.username || 'Desconocido';
+            tr.innerHTML = `<td>${new Date(e.timestamp).toLocaleString()}</td><td>${user}</td><td>${e.pin}</td>`;
             tbody.appendChild(tr);
           });
         }

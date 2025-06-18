@@ -79,7 +79,7 @@ exports.handler = async (event, context) => {
       }
       await saveCode({
         pin,
-        username: data.username || '',
+        user: data.user || '',
         days: Array.isArray(data.days) ? data.days : [],
         start_time: data.start_time || '00:00',
         end_time: data.end_time || '23:59'
@@ -96,7 +96,7 @@ exports.handler = async (event, context) => {
       const pin = decodeURIComponent(event.path.split('/').pop());
       const data = JSON.parse(event.body || '{}');
       await updateCode(pin, {
-        username: data.username || '',
+        user: data.user || '',
         days: Array.isArray(data.days) ? data.days : [],
         start_time: data.start_time || '00:00',
         end_time: data.end_time || '23:59'
