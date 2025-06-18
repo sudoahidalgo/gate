@@ -306,6 +306,16 @@
       border-radius: 5px;
       font-size: 0.85rem;
     }
+
+    .debug-info {
+      background: #f8f9fa;
+      border-left: 4px solid #667eea;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 5px;
+      font-family: monospace;
+      font-size: 0.85rem;
+    }
   </style>
 </head>
 <body>
@@ -342,6 +352,11 @@
       <li class="nav-item" role="presentation">
         <button class="nav-link" id="codes-tab" data-bs-toggle="tab" data-bs-target="#codes" type="button" role="tab">
           <i class="fas fa-key"></i> Gestión de Códigos
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="debug-tab" data-bs-toggle="tab" data-bs-target="#debug" type="button" role="tab">
+          <i class="fas fa-bug"></i> Debug
         </button>
       </li>
     </ul>
@@ -572,6 +587,47 @@
           </div>
         </div>
       </div>
+
+      <!-- DEBUG TAB -->
+      <div class="tab-pane fade" id="debug" role="tabpanel">
+        <div class="card">
+          <div class="card-header">
+            <h4><i class="fas fa-bug"></i> Información de Debug</h4>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-6">
+                <h5>Test de Conectividad</h5>
+                <button class="btn btn-primary mb-3" onclick="testConnectivity()">
+                  <i class="fas fa-network-wired"></i> Test Conexión
+                </button>
+                <div id="connectivity-results"></div>
+              </div>
+              <div class="col-md-6">
+                <h5>Test de Webhook</h5>
+                <button class="btn btn-warning mb-3" onclick="testWebhookDebug()">
+                  <i class="fas fa-plug"></i> Test Webhook Detallado
+                </button>
+                <div id="webhook-results"></div>
+              </div>
+            </div>
+            
+            <hr>
+            
+            <div class="row">
+              <div class="col-12">
+                <h5>Logs del Sistema</h5>
+                <div id="system-logs" class="debug-info" style="max-height: 300px; overflow-y: auto;">
+                  <p>Presiona "Actualizar Logs" para ver los logs del sistema</p>
+                </div>
+                <button class="btn btn-info mt-2" onclick="updateSystemLogs()">
+                  <i class="fas fa-refresh"></i> Actualizar Logs
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -608,6 +664,7 @@
     let allLogs = [];
     let allCodes = [];
     let filteredLogs = [];
+    let systemLogs = [];
 
     // Initialize time pickers
     flatpickr('#hora-inicio', {
@@ -623,6 +680,12 @@
       dateFormat: 'H:i',
       defaultDate: '18:00'
     });
+
+    function addSystemLog(message, type = 'info') {
+      const timestamp = new Date().toLocaleString();
+      systemLogs.unshift(`[${timestamp}] [${type.toUpperCase()}] ${message}`);
+      if (systemLogs.length > 100) systemLogs = systemLogs.slice(0, 100);
+    }
 
     function showAlert(message, type = 'success') {
       const alertContainer = document.getElementById('alert-container');
@@ -643,6 +706,38 @@
           bsAlert.close();
         }
       }, 5000);
+
+      addSystemLog(`Alert: ${message}`, type);
+    }
+
+    async function makeRequest(url, options = {}) {
+      addSystemLog(`Making request to ${url} with method ${options.method || 'GET'}`);
+      
+      try {
+        const response = await fetch(url, {
+          ...options,
+          headers: {
+            'Content-Type': 'application/json',
+            ...options.headers
+          }
+        });
+        
+        addSystemLog(`Response from ${url}: ${response.status} ${response.statusText}`);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          addSystemLog(`Error response body: ${errorText}`, 'error');
+          throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+        
+        const data = await response.json();
+        addSystemLog(`Successfully parsed JSON response from ${url}`);
+        return data;
+        
+      } catch (error) {
+        addSystemLog(`Request failed to ${url}: ${error.message}`, 'error');
+        throw error;
+      }
     }
 
     async function cargarLogs() {
@@ -650,10 +745,7 @@
       if (loading) loading.style.display = 'block';
       
       try {
-        const res = await fetch('/logs');
-        if (!res.ok) throw new Error('Error al cargar logs');
-        
-        const data = await res.json();
+        const data = await makeRequest('/logs');
         allLogs = data.entries || [];
         filteredLogs = [...allLogs];
         
@@ -829,10 +921,7 @@
       if (loading) loading.style.display = 'block';
       
       try {
-        const res = await fetch('/codes');
-        if (!res.ok) throw new Error('Error al cargar códigos');
-        
-        const data = await res.json();
+        const data = await makeRequest('/codes');
         allCodes = data || [];
         
         document.getElementById('total-codes').textContent = allCodes.length;
@@ -951,21 +1040,25 @@
       }, 300);
     }
 
-    function deleteCode(pin) {
+    async function deleteCode(pin) {
       const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
       modal.show();
       
       document.getElementById('confirmDelete').onclick = async () => {
-        // Note: You'll need to implement DELETE endpoint in your server
-        showAlert('Función de eliminación no implementada aún', 'warning');
+        try {
+          await makeRequest(`/codes/${pin}`, { method: 'DELETE' });
+          showAlert('Código eliminado exitosamente', 'success');
+          await cargarCodigos();
+        } catch (error) {
+          showAlert('Error al eliminar código: ' + error.message, 'danger');
+        }
         modal.hide();
       };
     }
 
     async function testWebhook() {
       try {
-        const res = await fetch('/test-webhook', { method: 'POST' });
-        const data = await res.json();
+        const data = await makeRequest('/test-webhook', { method: 'POST' });
         
         if (data.success) {
           showAlert('Test de webhook exitoso: ' + data.message, 'success');
@@ -974,6 +1067,66 @@
         }
       } catch (error) {
         showAlert('Error en test de webhook: ' + error.message, 'danger');
+      }
+    }
+
+    async function testConnectivity() {
+      const resultsDiv = document.getElementById('connectivity-results');
+      resultsDiv.innerHTML = '<div class="loading-spinner" style="display: block;"></div>';
+      
+      const tests = [
+        { name: 'Códigos', url: '/codes', method: 'GET' },
+        { name: 'Logs', url: '/logs', method: 'GET' },
+        { name: 'Test Webhook', url: '/test-webhook', method: 'POST' }
+      ];
+      
+      let results = '<h6>Resultados de Conectividad:</h6>';
+      
+      for (const test of tests) {
+        try {
+          const start = Date.now();
+          await makeRequest(test.url, { method: test.method });
+          const duration = Date.now() - start;
+          results += `<div class="debug-info text-success">✅ ${test.name}: OK (${duration}ms)</div>`;
+        } catch (error) {
+          results += `<div class="debug-info text-danger">❌ ${test.name}: ${error.message}</div>`;
+        }
+      }
+      
+      resultsDiv.innerHTML = results;
+    }
+
+    async function testWebhookDebug() {
+      const resultsDiv = document.getElementById('webhook-results');
+      resultsDiv.innerHTML = '<div class="loading-spinner" style="display: block;"></div>';
+      
+      try {
+        const data = await makeRequest('/test-webhook', { method: 'POST' });
+        resultsDiv.innerHTML = `
+          <h6>Resultado del Webhook:</h6>
+          <div class="debug-info">
+            <strong>Estado:</strong> ${data.success ? 'Exitoso' : 'Fallido'}<br>
+            <strong>Mensaje:</strong> ${data.message}<br>
+            ${data.result ? `<strong>Código de respuesta:</strong> ${data.result.statusCode}<br>` : ''}
+            ${data.warning ? `<strong>Advertencia:</strong> ${data.warning}<br>` : ''}
+            ${data.error ? `<strong>Error:</strong> ${data.error}<br>` : ''}
+          </div>
+        `;
+      } catch (error) {
+        resultsDiv.innerHTML = `
+          <h6>Error en Webhook:</h6>
+          <div class="debug-info text-danger">${error.message}</div>
+        `;
+      }
+    }
+
+    function updateSystemLogs() {
+      const logsDiv = document.getElementById('system-logs');
+      if (systemLogs.length === 0) {
+        logsDiv.innerHTML = '<p>No hay logs del sistema disponibles</p>';
+      } else {
+        logsDiv.innerHTML = systemLogs.join('<br>');
+        logsDiv.scrollTop = 0;
       }
     }
 
@@ -997,13 +1150,10 @@
           throw new Error('Debe seleccionar al menos un día de la semana');
         }
         
-        const res = await fetch('/codes', {
+        await makeRequest('/codes', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ pin, user, start, end, days })
         });
-        
-        if (!res.ok) throw new Error('Error al guardar el código');
         
         document.getElementById('code-form').reset();
         document.getElementById('hora-inicio').value = '08:00';
@@ -1027,6 +1177,7 @@
 
     // Load data on page load
     document.addEventListener('DOMContentLoaded', () => {
+      addSystemLog('Admin panel initialized');
       cargarLogs();
       cargarCodigos();
       
