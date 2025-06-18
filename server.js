@@ -117,7 +117,7 @@ function serveAdmin(res) {
 }
 
 function serveLogsPage(res) {
-  fs.readFile(path.join(__dirname, 'logs.html'), (err, data) => {
+  fs.readFile(path.join(__dirname, 'admin-logs.html'), (err, data) => {
     if (err) {
       res.writeHead(500, { 'Content-Type': 'text/plain' });
       res.end('Server error');
@@ -318,7 +318,7 @@ const server = http.createServer((req, res) => {
     serveAdmin(res);
     return;
   }
-  if (req.method === 'GET' && req.url === '/logs-view') {
+  if (req.method === 'GET' && (req.url === '/admin/logs' || req.url === '/logs-view')) {
     serveLogsPage(res);
     return;
   }
