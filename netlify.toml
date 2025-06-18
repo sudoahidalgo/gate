@@ -29,8 +29,13 @@
   status = 200
 
 [[redirects]]
+  from = "/admin/logs"
+  to = "/admin-logs.html"
+  status = 200
+
+[[redirects]]
   from = "/logs-view"
-  to = "/logs.html"
+  to = "/admin-logs.html"
   status = 200
 
 # Environment variables for build (you'll need to set these in Netlify dashboard)
