@@ -118,6 +118,7 @@ async function appendLog(pin, user) {
 }
 
 function forwardWebhook(callback) {
+  console.log(`🔗 Calling webhook: ${WEBHOOK_URL}`);
   const url = new URL(WEBHOOK_URL);
   const options = {
     method: 'POST',
@@ -129,11 +130,22 @@ function forwardWebhook(callback) {
   };
 
   const req = (url.protocol === 'https:' ? https : http).request(options, res => {
-    res.on('data', () => {});
-    res.on('end', () => callback());
+    console.log(`📡 Webhook response status: ${res.statusCode}`);
+    res.on('data', (data) => {
+      console.log(`📡 Webhook response data: ${data}`);
+    });
+    res.on('end', () => {
+      console.log(`✅ Webhook completed`);
+      callback();
+    });
   });
   req.on('error', err => {
-    console.error('Webhook error:', err);
+    console.error('❌ Webhook error:', err);
+    callback();
+  });
+  req.setTimeout(10000, () => {
+    console.error('❌ Webhook timeout');
+    req.destroy();
     callback();
   });
   req.end();
@@ -234,6 +246,14 @@ const server = http.createServer((req, res) => {
         res.writeHead(400, { 'Content-Type': 'text/plain' });
         res.end('Invalid data');
       }
+    });
+    return;
+  }
+  if (req.method === 'GET' && req.url === '/test-webhook') {
+    console.log('🧪 Testing webhook manually...');
+    forwardWebhook(() => {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true, message: 'Webhook test completed - check logs' }));
     });
     return;
   }
