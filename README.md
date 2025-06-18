@@ -14,15 +14,19 @@ Run `npm install` to install the project dependencies.
 
 ## Environment Variables
 
-Both the local server and the Netlify Functions need access to Supabase. Define
-the following variables:
+Both the local server and the Netlify Functions need access to Supabase and
+some configuration details. Define the following variables:
 
 - `SUPABASE_URL` – URL of your Supabase instance.
 - `SUPABASE_SERVICE_KEY` – Service role key with access to your database.
+- `TIMEZONE` – IANA time zone used when validating code schedules. If not set,
+  the server's local time zone is used.
 
 When deploying to Netlify, set these variables in the **Site settings →
-Environment variables** section of the Netlify dashboard. For local development,
-create a `.env` file in the project root with the variables in the form:
+Environment variables** section of the Netlify dashboard. Remember to define
+`TIMEZONE` so that schedule restrictions are evaluated correctly. For local
+development, create a `.env` file in the project root with the variables in the
+form:
 
 ```bash
 SUPABASE_URL=your-supabase-url
