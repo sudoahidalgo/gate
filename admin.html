@@ -154,7 +154,7 @@
         document.getElementById('edit-pin').value = pin;
         document.getElementById('new-pin').value = pin;
         document.getElementById('new-pin').disabled = true;
-        document.getElementById('new-user').value = code.username;
+        document.getElementById('new-user').value = code.user || code.username || '';
         document.getElementById('hora-inicio').value = code.start_time;
         document.getElementById('hora-fin').value = code.end_time;
 
