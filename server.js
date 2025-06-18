@@ -30,17 +30,25 @@ function minutes(t) {
   return h*60 + m;
 }
 
+function getNow() {
+  const tz = process.env.TIMEZONE || 'America/Costa_Rica';
+  return tz
+    ? new Date(new Date().toLocaleString('en-US', { timeZone: tz }))
+    : new Date();
+}
+
 function codeAllowed(code) {
-  // Use Costa Rica timezone (UTC-6)
-  const now = new Date();
-  const costaRicaTime = new Date(now.getTime() - (6 * 60 * 60 * 1000)); // UTC-6
-  
-  const day = costaRicaTime.getUTCDay();
+  const now = getNow();
+  const day = now.getDay();
   if (!code.days.includes(day)) return false;
+  const cur = now.getHours() * 60 + now.getMinutes();
   
-  const cur = costaRicaTime.getUTCHours() * 60 + costaRicaTime.getUTCMinutes();
-  const startM = minutes(code.start);
-  const endM = minutes(code.end);
+  // Check both old and new column names for compatibility
+  const startTime = code.start_time || code.start || '00:00';
+  const endTime = code.end_time || code.end || '23:59';
+  
+  const startM = minutes(startTime);
+  const endM = minutes(endTime);
   
   if (startM <= endM) {
     return cur >= startM && cur <= endM;
@@ -193,19 +201,18 @@ const server = http.createServer((req, res) => {
   if (req.method === 'GET' && req.url === '/debug') {
     // Debug endpoint to check current time and codes
     loadCodes().then(codes => {
-      const now = new Date();
-      const costaRicaTime = new Date(now.getTime() - (6 * 60 * 60 * 1000));
+      const now = getNow();
       const debug = {
-        serverTime: now.toISOString(),
-        costaRicaTime: costaRicaTime.toISOString(),
-        day: costaRicaTime.getUTCDay(),
-        currentMinutes: costaRicaTime.getUTCHours() * 60 + costaRicaTime.getUTCMinutes(),
+        timezone: process.env.TIMEZONE || 'America/Costa_Rica',
+        currentTime: now.toISOString(),
+        day: now.getDay(),
+        currentMinutes: now.getHours() * 60 + now.getMinutes(),
         codes: codes.map(c => ({
           pin: c.pin,
           user: c.user,
           days: c.days,
-          start: c.start,
-          end: c.end,
+          start: c.start_time || c.start,
+          end: c.end_time || c.end,
           allowed: codeAllowed(c)
         }))
       };
