@@ -96,8 +96,15 @@ function minutes(t) {
   return h*60 + m;
 }
 
+function getNow() {
+  const tz = process.env.TIMEZONE;
+  return tz
+    ? new Date(new Date().toLocaleString('en-US', { timeZone: tz }))
+    : new Date();
+}
+
 function codeAllowed(code) {
-  const now = new Date();
+  const now = getNow();
   const day = now.getDay();
   if (!code.days.includes(day)) return false;
   const cur = now.getHours() * 60 + now.getMinutes();
