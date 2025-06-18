@@ -8,6 +8,22 @@
   <link href="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.css" rel="stylesheet">
 </head>
 <body class="bg-light">
+  <header class="p-3 mb-4 border-bottom bg-body-tertiary">
+    <div class="container">
+      <div class="d-flex flex-wrap align-items-center justify-content-center justify-content-lg-start">
+        <a href="/" class="d-flex align-items-center mb-2 mb-lg-0 link-body-emphasis text-decoration-none">
+          <span class="fs-4">Panel Admin</span>
+        </a>
+        <ul class="nav col-12 col-lg-auto me-lg-auto mb-2 justify-content-center mb-md-0">
+          <li><a href="/admin" class="nav-link px-2 link-body-emphasis">Códigos</a></li>
+          <li><a href="/admin/logs" class="nav-link px-2 link-secondary">Logs</a></li>
+        </ul>
+        <div class="text-end">
+          <a href="/" class="btn btn-sm btn-outline-primary">Salir</a>
+        </div>
+      </div>
+    </div>
+  </header>
   <div class="container py-4">
     <h1 class="mb-4">Registro de Uso del Portón</h1>
     <table class="table table-striped" id="log-table">

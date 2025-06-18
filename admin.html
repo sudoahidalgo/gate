@@ -9,9 +9,24 @@
   <link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet">
 </head>
 <body class="bg-light">
+  <header class="p-3 mb-4 border-bottom bg-body-tertiary">
+    <div class="container">
+      <div class="d-flex flex-wrap align-items-center justify-content-center justify-content-lg-start">
+        <a href="/" class="d-flex align-items-center mb-2 mb-lg-0 link-body-emphasis text-decoration-none">
+          <span class="fs-4">Panel Admin</span>
+        </a>
+        <ul class="nav col-12 col-lg-auto me-lg-auto mb-2 justify-content-center mb-md-0">
+          <li><a href="/admin" class="nav-link px-2 link-secondary">Códigos</a></li>
+          <li><a href="/admin/logs" class="nav-link px-2 link-body-emphasis">Logs</a></li>
+        </ul>
+        <div class="text-end">
+          <a href="/" class="btn btn-sm btn-outline-primary">Salir</a>
+        </div>
+      </div>
+    </div>
+  </header>
   <div class="container py-4">
     <h1 class="mb-4">Administración de Códigos</h1>
-    <a href="/admin/logs" class="btn btn-outline-secondary mb-4">Ver Logs</a>
 
     <h2 class="mt-4" id="form-title">Agregar Código</h2>
     <form id="code-form" class="row gy-2 gx-3 align-items-end">
