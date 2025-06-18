@@ -14,7 +14,7 @@ function minutes(t) {
 }
 
 function getNow() {
-  const tz = process.env.TIMEZONE || 'UTC';
+  const tz = process.env.TIMEZONE || 'America/Costa_Rica';
   return new Date(new Date().toLocaleString('en-US', { timeZone: tz }));
 }
 
@@ -23,8 +23,14 @@ function codeAllowed(code) {
   const day = now.getDay();
   if (!code.days.includes(day)) return false;
   const cur = now.getHours() * 60 + now.getMinutes();
-  const startM = minutes(code.start_time);
-  const endM = minutes(code.end_time);
+  
+  // Support both old and new column names
+  const startTime = code.start_time || code.start || '00:00';
+  const endTime = code.end_time || code.end || '23:59';
+  
+  const startM = minutes(startTime);
+  const endM = minutes(endTime);
+  
   if (startM <= endM) {
     return cur >= startM && cur <= endM;
   }
@@ -41,10 +47,10 @@ async function pinAllowed(pin) {
   return codeAllowed(data) ? data : null;
 }
 
-async function appendLog(pin, username) {
+async function appendLog(pin, user) {
   const { error } = await supabase
     .from('logs')
-    .insert({ timestamp: new Date().toISOString(), pin, username });
+    .insert({ timestamp: new Date().toISOString(), pin, user });
   if (error) console.error('Error writing log:', error);
 }
 
@@ -80,6 +86,7 @@ exports.handler = async (event, context) => {
       body: JSON.stringify({ error: 'Missing Supabase configuration' })
     };
   }
+
   // Enable CORS
   const headers = {
     'Access-Control-Allow-Origin': '*',
@@ -103,9 +110,12 @@ exports.handler = async (event, context) => {
   try {
     const data = JSON.parse(event.body);
     const pin = data.pin || 'unknown';
+    console.log(`Netlify function: Attempting to open with PIN ${pin} at ${getNow().toISOString()}`);
+    
     const code = await pinAllowed(pin);
     
     if (!code) {
+      console.log(`Netlify function: PIN ${pin} rejected`);
       return {
         statusCode: 401,
         headers,
@@ -113,7 +123,8 @@ exports.handler = async (event, context) => {
       };
     }
 
-    await appendLog(pin, code.username);
+    console.log(`Netlify function: PIN ${pin} accepted for user ${code.user}`);
+    await appendLog(pin, code.user);
     await forwardWebhook();
     
     return {
@@ -122,7 +133,7 @@ exports.handler = async (event, context) => {
       body: JSON.stringify({ ok: true })
     };
   } catch (error) {
-    console.error('Function error:', error);
+    console.error('Netlify function error:', error);
     return {
       statusCode: 400,
       headers,
