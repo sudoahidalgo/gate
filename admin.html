@@ -13,6 +13,7 @@
       --success-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
       --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
       --dark-gradient: linear-gradient(135deg, #434343 0%, #000000 100%);
+      --info-gradient: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
     }
     
     body {
@@ -25,6 +26,44 @@
       background: var(--primary-gradient);
       backdrop-filter: blur(10px);
       box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+    }
+    
+    .nav-tabs {
+      border: none;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      border-radius: 15px;
+      padding: 10px;
+      margin-bottom: 30px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    
+    .nav-tabs .nav-link {
+      border: none;
+      border-radius: 10px;
+      padding: 15px 25px;
+      margin: 0 5px;
+      color: #666;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .nav-tabs .nav-link:hover {
+      background: rgba(102, 126, 234, 0.1);
+      color: #667eea;
+      transform: translateY(-2px);
+    }
+    
+    .nav-tabs .nav-link.active {
+      background: var(--primary-gradient);
+      color: white;
+      box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+    }
+    
+    .tab-content {
+      animation: fadeIn 0.5s ease-in;
     }
     
     .card {
@@ -80,6 +119,13 @@
       background: var(--warning-gradient);
       border: none;
       border-radius: 10px;
+    }
+    
+    .btn-warning {
+      background: var(--info-gradient);
+      border: none;
+      border-radius: 10px;
+      color: #333;
     }
     
     .table {
@@ -139,6 +185,11 @@
       border-radius: 15px;
       padding: 20px;
       text-align: center;
+      transition: transform 0.3s ease;
+    }
+    
+    .stats-card:hover {
+      transform: scale(1.05);
     }
     
     .stats-number {
@@ -227,6 +278,34 @@
       from { opacity: 0; transform: translateY(10px); }
       to { opacity: 1; transform: translateY(0); }
     }
+    
+    .tab-pane {
+      min-height: 400px;
+    }
+    
+    .action-buttons {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    
+    .delete-btn {
+      background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+      border: none;
+      color: white;
+      padding: 8px 15px;
+      border-radius: 5px;
+      font-size: 0.85rem;
+    }
+    
+    .edit-btn {
+      background: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%);
+      border: none;
+      color: white;
+      padding: 8px 15px;
+      border-radius: 5px;
+      font-size: 0.85rem;
+    }
   </style>
 </head>
 <body>
@@ -237,166 +316,260 @@
         <i class="fas fa-shield-alt"></i> Portal Administrativo HiVe
       </span>
       <div class="d-flex">
-        <button class="btn btn-outline-light btn-sm" onclick="refreshAll()">
+        <button class="btn btn-outline-light btn-sm me-2" onclick="refreshAll()">
           <i class="fas fa-sync-alt"></i> Actualizar
+        </button>
+        <button class="btn btn-outline-light btn-sm" onclick="testWebhook()">
+          <i class="fas fa-plug"></i> Test
         </button>
       </div>
     </div>
   </nav>
 
   <div class="container py-4">
-    <!-- Statistics Row -->
-    <div class="row mb-4">
-      <div class="col-md-4">
-        <div class="stats-card">
-          <div class="stats-number" id="total-logs">0</div>
-          <div>Total Accesos</div>
-        </div>
-      </div>
-      <div class="col-md-4">
-        <div class="stats-card" style="background: var(--warning-gradient);">
-          <div class="stats-number" id="total-codes">0</div>
-          <div>Códigos Activos</div>
-        </div>
-      </div>
-      <div class="col-md-4">
-        <div class="stats-card" style="background: var(--dark-gradient);">
-          <div class="stats-number" id="today-logs">0</div>
-          <div>Accesos Hoy</div>
-        </div>
-      </div>
-    </div>
+    <!-- Navigation Tabs -->
+    <ul class="nav nav-tabs" id="adminTabs" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="dashboard-tab" data-bs-toggle="tab" data-bs-target="#dashboard" type="button" role="tab">
+          <i class="fas fa-tachometer-alt"></i> Dashboard
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="history-tab" data-bs-toggle="tab" data-bs-target="#history" type="button" role="tab">
+          <i class="fas fa-history"></i> Historial de Acceso
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="codes-tab" data-bs-toggle="tab" data-bs-target="#codes" type="button" role="tab">
+          <i class="fas fa-key"></i> Gestión de Códigos
+        </button>
+      </li>
+    </ul>
 
-    <!-- Recent Activity -->
-    <div class="card mb-4 fade-in">
-      <div class="card-header">
-        <h4><i class="fas fa-history"></i> Registro de Actividad Reciente</h4>
-      </div>
-      <div class="card-body">
-        <div class="loading-spinner" id="logs-loading"></div>
-        <div class="table-responsive">
-          <table class="table table-hover" id="log-table">
-            <thead>
-              <tr>
-                <th><i class="fas fa-calendar"></i> Fecha y Hora</th>
-                <th><i class="fas fa-user"></i> Usuario</th>
-                <th><i class="fas fa-key"></i> PIN</th>
-                <th><i class="fas fa-info-circle"></i> Estado</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
+    <!-- Tab Content -->
+    <div class="tab-content" id="adminTabContent">
+      
+      <!-- DASHBOARD TAB -->
+      <div class="tab-pane fade show active" id="dashboard" role="tabpanel">
+        <div class="row mb-4">
+          <div class="col-md-4">
+            <div class="stats-card">
+              <div class="stats-number" id="total-logs">0</div>
+              <div><i class="fas fa-chart-line"></i> Total Accesos</div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="stats-card" style="background: var(--warning-gradient);">
+              <div class="stats-number" id="total-codes">0</div>
+              <div><i class="fas fa-key"></i> Códigos Activos</div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="stats-card" style="background: var(--dark-gradient);">
+              <div class="stats-number" id="today-logs">0</div>
+              <div><i class="fas fa-calendar-day"></i> Accesos Hoy</div>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
 
-    <!-- Add New Code -->
-    <div class="card mb-4 fade-in">
-      <div class="card-header">
-        <h4><i class="fas fa-plus-circle"></i> Agregar Nuevo Código de Acceso</h4>
-      </div>
-      <div class="card-body">
-        <form id="code-form">
-          <div class="row g-3">
-            <div class="col-md-3">
-              <label class="form-label fw-bold">PIN (4 dígitos)</label>
-              <input type="text" class="form-control" id="new-pin" placeholder="1234" maxlength="4" pattern="[0-9]{4}" required>
-            </div>
-            <div class="col-md-4">
-              <label class="form-label fw-bold">Nombre del Usuario</label>
-              <input type="text" class="form-control" id="new-user" placeholder="Juan Pérez" required>
-            </div>
-            <div class="col-md-5">
-              <label class="form-label fw-bold">Horario Permitido</label>
-              <div class="time-input-group">
-                <div class="time-input flex-fill">
-                  <input type="text" class="form-control" id="hora-inicio" placeholder="08:00" required>
-                </div>
-                <span class="fw-bold">hasta</span>
-                <div class="time-input flex-fill">
-                  <input type="text" class="form-control" id="hora-fin" placeholder="18:00" required>
+        <div class="row">
+          <div class="col-md-6">
+            <div class="card">
+              <div class="card-header">
+                <h5><i class="fas fa-clock"></i> Últimos Accesos</h5>
+              </div>
+              <div class="card-body">
+                <div id="recent-activity">
+                  <div class="loading-spinner"></div>
                 </div>
               </div>
             </div>
           </div>
-          
-          <div class="mt-3">
-            <label class="form-label fw-bold">Días de la Semana Habilitados</label>
-            <div class="checkbox-container" id="dias">
-              <div class="form-check">
-                <input class="form-check-input" type="checkbox" value="0" id="d0">
-                <label class="form-check-label fw-bold" for="d0">
-                  <i class="fas fa-calendar-day"></i> Domingo
-                </label>
+          <div class="col-md-6">
+            <div class="card">
+              <div class="card-header">
+                <h5><i class="fas fa-users"></i> Códigos Más Usados</h5>
               </div>
-              <div class="form-check">
-                <input class="form-check-input" type="checkbox" value="1" id="d1">
-                <label class="form-check-label fw-bold" for="d1">
-                  <i class="fas fa-calendar-day"></i> Lunes
-                </label>
-              </div>
-              <div class="form-check">
-                <input class="form-check-input" type="checkbox" value="2" id="d2">
-                <label class="form-check-label fw-bold" for="d2">
-                  <i class="fas fa-calendar-day"></i> Martes
-                </label>
-              </div>
-              <div class="form-check">
-                <input class="form-check-input" type="checkbox" value="3" id="d3">
-                <label class="form-check-label fw-bold" for="d3">
-                  <i class="fas fa-calendar-day"></i> Miércoles
-                </label>
-              </div>
-              <div class="form-check">
-                <input class="form-check-input" type="checkbox" value="4" id="d4">
-                <label class="form-check-label fw-bold" for="d4">
-                  <i class="fas fa-calendar-day"></i> Jueves
-                </label>
-              </div>
-              <div class="form-check">
-                <input class="form-check-input" type="checkbox" value="5" id="d5">
-                <label class="form-check-label fw-bold" for="d5">
-                  <i class="fas fa-calendar-day"></i> Viernes
-                </label>
-              </div>
-              <div class="form-check">
-                <input class="form-check-input" type="checkbox" value="6" id="d6">
-                <label class="form-check-label fw-bold" for="d6">
-                  <i class="fas fa-calendar-day"></i> Sábado
-                </label>
+              <div class="card-body">
+                <div id="popular-codes">
+                  <div class="loading-spinner"></div>
+                </div>
               </div>
             </div>
           </div>
-          
-          <div class="mt-4 text-center">
-            <button type="submit" class="btn btn-primary btn-lg">
-              <i class="fas fa-save"></i> Guardar Código de Acceso
-            </button>
-          </div>
-        </form>
+        </div>
       </div>
-    </div>
 
-    <!-- Current Codes -->
-    <div class="card fade-in">
-      <div class="card-header">
-        <h4><i class="fas fa-list"></i> Códigos de Acceso Configurados</h4>
+      <!-- HISTORY TAB -->
+      <div class="tab-pane fade" id="history" role="tabpanel">
+        <div class="card fade-in">
+          <div class="card-header">
+            <h4><i class="fas fa-history"></i> Historial Completo de Accesos</h4>
+          </div>
+          <div class="card-body">
+            <!-- Filters -->
+            <div class="row mb-3">
+              <div class="col-md-3">
+                <label class="form-label">Filtrar por usuario:</label>
+                <select class="form-select" id="filter-user">
+                  <option value="">Todos los usuarios</option>
+                </select>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">Desde:</label>
+                <input type="date" class="form-control" id="filter-from">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">Hasta:</label>
+                <input type="date" class="form-control" id="filter-to">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">&nbsp;</label>
+                <div>
+                  <button class="btn btn-primary" onclick="applyFilters()">
+                    <i class="fas fa-filter"></i> Filtrar
+                  </button>
+                  <button class="btn btn-secondary ms-2" onclick="clearFilters()">
+                    <i class="fas fa-times"></i> Limpiar
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="loading-spinner" id="logs-loading"></div>
+            <div class="table-responsive">
+              <table class="table table-hover" id="log-table">
+                <thead>
+                  <tr>
+                    <th><i class="fas fa-calendar"></i> Fecha y Hora</th>
+                    <th><i class="fas fa-user"></i> Usuario</th>
+                    <th><i class="fas fa-key"></i> PIN</th>
+                    <th><i class="fas fa-info-circle"></i> Estado</th>
+                    <th><i class="fas fa-cog"></i> Detalles</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="card-body">
-        <div class="loading-spinner" id="codes-loading"></div>
-        <div class="table-responsive">
-          <table class="table table-hover" id="code-table">
-            <thead>
-              <tr>
-                <th><i class="fas fa-key"></i> PIN</th>
-                <th><i class="fas fa-user"></i> Usuario</th>
-                <th><i class="fas fa-calendar-week"></i> Días</th>
-                <th><i class="fas fa-clock"></i> Horario</th>
-                <th><i class="fas fa-toggle-on"></i> Estado</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
+
+      <!-- CODES MANAGEMENT TAB -->
+      <div class="tab-pane fade" id="codes" role="tabpanel">
+        <!-- Add New Code -->
+        <div class="card mb-4 fade-in">
+          <div class="card-header">
+            <h4><i class="fas fa-plus-circle"></i> Agregar Nuevo Código de Acceso</h4>
+          </div>
+          <div class="card-body">
+            <form id="code-form">
+              <div class="row g-3">
+                <div class="col-md-3">
+                  <label class="form-label fw-bold">PIN (4 dígitos)</label>
+                  <input type="text" class="form-control" id="new-pin" placeholder="1234" maxlength="4" pattern="[0-9]{4}" required>
+                  <div class="form-text">Solo números del 0-9</div>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label fw-bold">Nombre del Usuario</label>
+                  <input type="text" class="form-control" id="new-user" placeholder="Juan Pérez" required>
+                  <div class="form-text">Nombre completo del usuario</div>
+                </div>
+                <div class="col-md-5">
+                  <label class="form-label fw-bold">Horario Permitido</label>
+                  <div class="time-input-group">
+                    <div class="time-input flex-fill">
+                      <input type="text" class="form-control" id="hora-inicio" placeholder="08:00" required>
+                    </div>
+                    <span class="fw-bold">hasta</span>
+                    <div class="time-input flex-fill">
+                      <input type="text" class="form-control" id="hora-fin" placeholder="18:00" required>
+                    </div>
+                  </div>
+                  <div class="form-text">Formato 24 horas (ej: 08:00)</div>
+                </div>
+              </div>
+              
+              <div class="mt-3">
+                <label class="form-label fw-bold">Días de la Semana Habilitados</label>
+                <div class="checkbox-container" id="dias">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" value="0" id="d0">
+                    <label class="form-check-label fw-bold" for="d0">
+                      <i class="fas fa-calendar-day"></i> Domingo
+                    </label>
+                  </div>
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" value="1" id="d1">
+                    <label class="form-check-label fw-bold" for="d1">
+                      <i class="fas fa-calendar-day"></i> Lunes
+                    </label>
+                  </div>
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" value="2" id="d2">
+                    <label class="form-check-label fw-bold" for="d2">
+                      <i class="fas fa-calendar-day"></i> Martes
+                    </label>
+                  </div>
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" value="3" id="d3">
+                    <label class="form-check-label fw-bold" for="d3">
+                      <i class="fas fa-calendar-day"></i> Miércoles
+                    </label>
+                  </div>
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" value="4" id="d4">
+                    <label class="form-check-label fw-bold" for="d4">
+                      <i class="fas fa-calendar-day"></i> Jueves
+                    </label>
+                  </div>
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" value="5" id="d5">
+                    <label class="form-check-label fw-bold" for="d5">
+                      <i class="fas fa-calendar-day"></i> Viernes
+                    </label>
+                  </div>
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" value="6" id="d6">
+                    <label class="form-check-label fw-bold" for="d6">
+                      <i class="fas fa-calendar-day"></i> Sábado
+                    </label>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="mt-4 text-center">
+                <button type="submit" class="btn btn-primary btn-lg">
+                  <i class="fas fa-save"></i> Guardar Código de Acceso
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- Current Codes -->
+        <div class="card fade-in">
+          <div class="card-header">
+            <h4><i class="fas fa-list"></i> Códigos de Acceso Configurados</h4>
+          </div>
+          <div class="card-body">
+            <div class="loading-spinner" id="codes-loading"></div>
+            <div class="table-responsive">
+              <table class="table table-hover" id="code-table">
+                <thead>
+                  <tr>
+                    <th><i class="fas fa-key"></i> PIN</th>
+                    <th><i class="fas fa-user"></i> Usuario</th>
+                    <th><i class="fas fa-calendar-week"></i> Días</th>
+                    <th><i class="fas fa-clock"></i> Horario</th>
+                    <th><i class="fas fa-toggle-on"></i> Estado</th>
+                    <th><i class="fas fa-cog"></i> Acciones</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -407,9 +580,35 @@
     <div id="alert-container"></div>
   </div>
 
+  <!-- Delete Confirmation Modal -->
+  <div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Confirmar Eliminación</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p>¿Está seguro que desea eliminar este código de acceso?</p>
+          <div class="alert alert-warning">
+            <i class="fas fa-exclamation-triangle"></i> Esta acción no se puede deshacer.
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-danger" id="confirmDelete">Eliminar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script>
+    let allLogs = [];
+    let allCodes = [];
+    let filteredLogs = [];
+
     // Initialize time pickers
     flatpickr('#hora-inicio', {
       enableTime: true,
@@ -437,7 +636,6 @@
       `;
       alertContainer.insertAdjacentHTML('beforeend', alertHtml);
       
-      // Auto-remove after 5 seconds
       setTimeout(() => {
         const alert = document.getElementById(alertId);
         if (alert) {
@@ -449,152 +647,333 @@
 
     async function cargarLogs() {
       const loading = document.getElementById('logs-loading');
-      loading.style.display = 'block';
+      if (loading) loading.style.display = 'block';
       
       try {
         const res = await fetch('/logs');
         if (!res.ok) throw new Error('Error al cargar logs');
         
         const data = await res.json();
-        const tbody = document.querySelector('#log-table tbody');
-        tbody.innerHTML = '';
+        allLogs = data.entries || [];
+        filteredLogs = [...allLogs];
         
-        // Update statistics
-        document.getElementById('total-logs').textContent = data.entries.length;
+        updateStatistics();
+        updateLogTable();
+        updateDashboard();
+        updateUserFilter();
         
-        const today = new Date().toDateString();
-        const todayLogs = data.entries.filter(e => 
-          new Date(e.timestamp).toDateString() === today
-        ).length;
-        document.getElementById('today-logs').textContent = todayLogs;
-        
-        if (data.entries.length === 0) {
-          tbody.innerHTML = `
-            <tr>
-              <td colspan="4" class="text-center text-muted py-4">
-                <i class="fas fa-inbox fa-2x mb-2"></i><br>
-                No hay registros disponibles
-              </td>
-            </tr>
-          `;
-        } else {
-          data.entries.slice(0, 50).forEach(e => { // Show only last 50 entries
-            const date = new Date(e.timestamp);
-            const isToday = date.toDateString() === today;
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-              <td>
-                <span class="badge ${isToday ? 'bg-success' : 'bg-secondary'} me-2">
-                  ${isToday ? 'HOY' : ''}
-                </span>
-                ${date.toLocaleString()}
-              </td>
-              <td>
-                <i class="fas fa-user-circle text-primary me-2"></i>
-                ${e.user || 'Usuario Desconocido'}
-              </td>
-              <td>
-                <code class="bg-light px-2 py-1 rounded">${e.pin}</code>
-              </td>
-              <td>
-                <span class="status-badge status-active">
-                  <i class="fas fa-check-circle"></i> Acceso Exitoso
-                </span>
-              </td>
-            `;
-            tbody.appendChild(tr);
-          });
-        }
       } catch (error) {
         showAlert('Error al cargar el registro de actividad: ' + error.message, 'danger');
       } finally {
-        loading.style.display = 'none';
+        if (loading) loading.style.display = 'none';
       }
+    }
+
+    function updateStatistics() {
+      document.getElementById('total-logs').textContent = allLogs.length;
+      
+      const today = new Date().toDateString();
+      const todayLogs = allLogs.filter(e => 
+        new Date(e.timestamp).toDateString() === today
+      ).length;
+      document.getElementById('today-logs').textContent = todayLogs;
+    }
+
+    function updateLogTable() {
+      const tbody = document.querySelector('#log-table tbody');
+      tbody.innerHTML = '';
+      
+      const today = new Date().toDateString();
+      
+      if (filteredLogs.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="5" class="text-center text-muted py-4">
+              <i class="fas fa-inbox fa-2x mb-2"></i><br>
+              No hay registros que coincidan con los filtros
+            </td>
+          </tr>
+        `;
+      } else {
+        filteredLogs.slice(0, 100).forEach(e => {
+          const date = new Date(e.timestamp);
+          const isToday = date.toDateString() === today;
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>
+              <span class="badge ${isToday ? 'bg-success' : 'bg-secondary'} me-2">
+                ${isToday ? 'HOY' : ''}
+              </span>
+              ${date.toLocaleString()}
+            </td>
+            <td>
+              <i class="fas fa-user-circle text-primary me-2"></i>
+              ${e.user || 'Usuario Desconocido'}
+            </td>
+            <td>
+              <code class="bg-light px-2 py-1 rounded">${e.pin}</code>
+            </td>
+            <td>
+              <span class="status-badge ${e.success !== false ? 'status-active' : 'status-inactive'}">
+                <i class="fas fa-${e.success !== false ? 'check-circle' : 'times-circle'}"></i>
+                ${e.success !== false ? 'Exitoso' : 'Fallido'}
+              </span>
+            </td>
+            <td>
+              ${e.error_message ? `<small class="text-danger">${e.error_message}</small>` : '-'}
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+    }
+
+    function updateUserFilter() {
+      const select = document.getElementById('filter-user');
+      const users = [...new Set(allLogs.map(log => log.user).filter(u => u))];
+      
+      select.innerHTML = '<option value="">Todos los usuarios</option>';
+      users.forEach(user => {
+        const option = document.createElement('option');
+        option.value = user;
+        option.textContent = user;
+        select.appendChild(option);
+      });
+    }
+
+    function updateDashboard() {
+      // Recent activity
+      const recentContainer = document.getElementById('recent-activity');
+      const recent = allLogs.slice(0, 5);
+      
+      if (recent.length === 0) {
+        recentContainer.innerHTML = '<p class="text-muted">No hay actividad reciente</p>';
+      } else {
+        recentContainer.innerHTML = recent.map(log => `
+          <div class="d-flex justify-content-between align-items-center mb-2 p-2 bg-light rounded">
+            <div>
+              <strong>${log.user || 'Desconocido'}</strong><br>
+              <small class="text-muted">${new Date(log.timestamp).toLocaleString()}</small>
+            </div>
+            <span class="badge ${log.success !== false ? 'bg-success' : 'bg-danger'}">
+              ${log.success !== false ? 'OK' : 'Error'}
+            </span>
+          </div>
+        `).join('');
+      }
+
+      // Popular codes
+      const popularContainer = document.getElementById('popular-codes');
+      const codeUsage = {};
+      allLogs.forEach(log => {
+        const key = `${log.pin}-${log.user}`;
+        codeUsage[key] = (codeUsage[key] || 0) + 1;
+      });
+      
+      const sorted = Object.entries(codeUsage)
+        .sort(([,a], [,b]) => b - a)
+        .slice(0, 5);
+      
+      if (sorted.length === 0) {
+        popularContainer.innerHTML = '<p class="text-muted">No hay datos de uso</p>';
+      } else {
+        popularContainer.innerHTML = sorted.map(([key, count]) => {
+          const [pin, user] = key.split('-');
+          return `
+            <div class="d-flex justify-content-between align-items-center mb-2 p-2 bg-light rounded">
+              <div>
+                <strong>${user}</strong><br>
+                <small class="text-muted">PIN: ${pin}</small>
+              </div>
+              <span class="badge bg-primary">${count} usos</span>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+
+    function applyFilters() {
+      const userFilter = document.getElementById('filter-user').value;
+      const fromFilter = document.getElementById('filter-from').value;
+      const toFilter = document.getElementById('filter-to').value;
+      
+      filteredLogs = allLogs.filter(log => {
+        if (userFilter && log.user !== userFilter) return false;
+        
+        if (fromFilter) {
+          const logDate = new Date(log.timestamp).toISOString().split('T')[0];
+          if (logDate < fromFilter) return false;
+        }
+        
+        if (toFilter) {
+          const logDate = new Date(log.timestamp).toISOString().split('T')[0];
+          if (logDate > toFilter) return false;
+        }
+        
+        return true;
+      });
+      
+      updateLogTable();
+    }
+
+    function clearFilters() {
+      document.getElementById('filter-user').value = '';
+      document.getElementById('filter-from').value = '';
+      document.getElementById('filter-to').value = '';
+      filteredLogs = [...allLogs];
+      updateLogTable();
     }
 
     async function cargarCodigos() {
       const loading = document.getElementById('codes-loading');
-      loading.style.display = 'block';
+      if (loading) loading.style.display = 'block';
       
       try {
         const res = await fetch('/codes');
         if (!res.ok) throw new Error('Error al cargar códigos');
         
         const data = await res.json();
-        const tbody = document.querySelector('#code-table tbody');
-        tbody.innerHTML = '';
+        allCodes = data || [];
         
-        // Update statistics
-        document.getElementById('total-codes').textContent = data.length;
+        document.getElementById('total-codes').textContent = allCodes.length;
+        updateCodeTable();
         
-        const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-        
-        if (data.length === 0) {
-          tbody.innerHTML = `
-            <tr>
-              <td colspan="5" class="text-center text-muted py-4">
-                <i class="fas fa-key fa-2x mb-2"></i><br>
-                No hay códigos configurados
-              </td>
-            </tr>
-          `;
-        } else {
-          data.forEach(c => {
-            const diasText = Array.isArray(c.days) 
-              ? c.days.map(d => dayNames[d]).join(', ')
-              : 'Sin días configurados';
-            
-            // Check if code is currently active
-            const now = new Date();
-            const currentDay = now.getDay();
-            const currentTime = now.getHours() * 60 + now.getMinutes();
-            const [startH, startM] = (c.start || '00:00').split(':').map(Number);
-            const [endH, endM] = (c.end || '23:59').split(':').map(Number);
-            const startTime = startH * 60 + startM;
-            const endTime = endH * 60 + endM;
-            
-            const isActiveDay = c.days && c.days.includes(currentDay);
-            const isActiveTime = startTime <= endTime 
-              ? (currentTime >= startTime && currentTime <= endTime)
-              : (currentTime >= startTime || currentTime <= endTime);
-            const isActive = isActiveDay && isActiveTime;
-            
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-              <td>
-                <code class="bg-primary text-white px-3 py-2 rounded fs-6">${c.pin}</code>
-              </td>
-              <td>
-                <div class="d-flex align-items-center">
-                  <i class="fas fa-user-circle text-primary me-2 fs-5"></i>
-                  <strong>${c.user || 'Sin nombre'}</strong>
-                </div>
-              </td>
-              <td>
-                <div class="d-flex flex-wrap gap-1">
-                  ${c.days ? c.days.map(d => 
-                    `<span class="badge ${currentDay === d ? 'bg-success' : 'bg-secondary'}">${dayNames[d]}</span>`
-                  ).join('') : '<span class="text-muted">Sin configurar</span>'}
-                </div>
-              </td>
-              <td>
-                <i class="fas fa-clock text-info me-1"></i>
-                <strong>${c.start || '00:00'}</strong> - <strong>${c.end || '23:59'}</strong>
-              </td>
-              <td>
-                <span class="status-badge ${isActive ? 'status-active' : 'status-inactive'}">
-                  <i class="fas fa-${isActive ? 'check-circle' : 'times-circle'}"></i>
-                  ${isActive ? 'Activo' : 'Inactivo'}
-                </span>
-              </td>
-            `;
-            tbody.appendChild(tr);
-          });
-        }
       } catch (error) {
         showAlert('Error al cargar los códigos: ' + error.message, 'danger');
       } finally {
-        loading.style.display = 'none';
+        if (loading) loading.style.display = 'none';
+      }
+    }
+
+    function updateCodeTable() {
+      const tbody = document.querySelector('#code-table tbody');
+      tbody.innerHTML = '';
+      
+      const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+      
+      if (allCodes.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="6" class="text-center text-muted py-4">
+              <i class="fas fa-key fa-2x mb-2"></i><br>
+              No hay códigos configurados
+            </td>
+          </tr>
+        `;
+      } else {
+        allCodes.forEach((c, index) => {
+          const diasText = Array.isArray(c.days) 
+            ? c.days.map(d => dayNames[d]).join(', ')
+            : 'Sin días configurados';
+          
+          const now = new Date();
+          const currentDay = now.getDay();
+          const currentTime = now.getHours() * 60 + now.getMinutes();
+          const [startH, startM] = (c.start || '00:00').split(':').map(Number);
+          const [endH, endM] = (c.end || '23:59').split(':').map(Number);
+          const startTime = startH * 60 + startM;
+          const endTime = endH * 60 + endM;
+          
+          const isActiveDay = c.days && c.days.includes(currentDay);
+          const isActiveTime = startTime <= endTime 
+            ? (currentTime >= startTime && currentTime <= endTime)
+            : (currentTime >= startTime || currentTime <= endTime);
+          const isActive = isActiveDay && isActiveTime;
+          
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>
+              <code class="bg-primary text-white px-3 py-2 rounded fs-6">${c.pin}</code>
+            </td>
+            <td>
+              <div class="d-flex align-items-center">
+                <i class="fas fa-user-circle text-primary me-2 fs-5"></i>
+                <strong>${c.user || 'Sin nombre'}</strong>
+              </div>
+            </td>
+            <td>
+              <div class="d-flex flex-wrap gap-1">
+                ${c.days ? c.days.map(d => 
+                  `<span class="badge ${currentDay === d ? 'bg-success' : 'bg-secondary'}">${dayNames[d]}</span>`
+                ).join('') : '<span class="text-muted">Sin configurar</span>'}
+              </div>
+            </td>
+            <td>
+              <i class="fas fa-clock text-info me-1"></i>
+              <strong>${c.start || '00:00'}</strong> - <strong>${c.end || '23:59'}</strong>
+            </td>
+            <td>
+              <span class="status-badge ${isActive ? 'status-active' : 'status-inactive'}">
+                <i class="fas fa-${isActive ? 'check-circle' : 'times-circle'}"></i>
+                ${isActive ? 'Activo' : 'Inactivo'}
+              </span>
+            </td>
+            <td>
+              <div class="action-buttons">
+                <button class="edit-btn" onclick="editCode(${index})">
+                  <i class="fas fa-edit"></i> Editar
+                </button>
+                <button class="delete-btn" onclick="deleteCode('${c.pin}')">
+                  <i class="fas fa-trash"></i> Eliminar
+                </button>
+              </div>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+    }
+
+    function editCode(index) {
+      const code = allCodes[index];
+      document.getElementById('new-pin').value = code.pin;
+      document.getElementById('new-user').value = code.user || '';
+      document.getElementById('hora-inicio').value = code.start || '08:00';
+      document.getElementById('hora-fin').value = code.end || '18:00';
+      
+      // Clear all checkboxes first
+      document.querySelectorAll('#dias input[type="checkbox"]').forEach(cb => cb.checked = false);
+      
+      // Check the appropriate days
+      if (code.days) {
+        code.days.forEach(day => {
+          const checkbox = document.getElementById(`d${day}`);
+          if (checkbox) checkbox.checked = true;
+        });
+      }
+      
+      // Switch to codes tab and scroll to form
+      const codesTab = new bootstrap.Tab(document.getElementById('codes-tab'));
+      codesTab.show();
+      
+      setTimeout(() => {
+        document.getElementById('code-form').scrollIntoView({ behavior: 'smooth' });
+      }, 300);
+    }
+
+    function deleteCode(pin) {
+      const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+      modal.show();
+      
+      document.getElementById('confirmDelete').onclick = async () => {
+        // Note: You'll need to implement DELETE endpoint in your server
+        showAlert('Función de eliminación no implementada aún', 'warning');
+        modal.hide();
+      };
+    }
+
+    async function testWebhook() {
+      try {
+        const res = await fetch('/test-webhook', { method: 'POST' });
+        const data = await res.json();
+        
+        if (data.success) {
+          showAlert('Test de webhook exitoso: ' + data.message, 'success');
+        } else {
+          showAlert('Test de webhook falló: ' + data.error, 'danger');
+        }
+      } catch (error) {
+        showAlert('Error en test de webhook: ' + error.message, 'danger');
       }
     }
 
@@ -627,7 +1006,6 @@
         if (!res.ok) throw new Error('Error al guardar el código');
         
         document.getElementById('code-form').reset();
-        // Reset time pickers to default
         document.getElementById('hora-inicio').value = '08:00';
         document.getElementById('hora-fin').value = '18:00';
         
@@ -654,8 +1032,10 @@
       
       // Auto-refresh every 30 seconds
       setInterval(() => {
-        cargarLogs();
-        cargarCodigos();
+        if (document.getElementById('dashboard').classList.contains('show')) {
+          cargarLogs();
+          cargarCodigos();
+        }
       }, 30000);
     });
 
