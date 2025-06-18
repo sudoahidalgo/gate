@@ -11,6 +11,14 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
 const CODES_FILE = path.join(__dirname, 'codes.json');
 
+// FUNCIÓN PARA AGREGAR HEADERS CORS
+function setCorsHeaders(res) {
+  res.setHeader('Access-Control-Allow-Origin', 'https://gate2hive.netlify.app');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+}
+
 async function loadCodes() {
   const { data, error } = await supabase.from('codes').select('*');
   if (error) {
@@ -99,6 +107,7 @@ async function pinAllowed(pin) {
 const WEBHOOK_URL = 'https://dyaxguerproyd2kte4awwggu9ylh6rsd.ui.nabu.casa/api/webhook/porton_abrir';
 
 function serveIndex(res) {
+  setCorsHeaders(res);
   fs.readFile(path.join(__dirname, 'index.html'), (err, data) => {
     if (err) {
       res.writeHead(500, { 'Content-Type': 'text/plain' });
@@ -111,6 +120,7 @@ function serveIndex(res) {
 }
 
 function serveAdmin(res) {
+  setCorsHeaders(res);
   fs.readFile(path.join(__dirname, 'admin.html'), (err, data) => {
     if (err) {
       res.writeHead(500, { 'Content-Type': 'text/plain' });
@@ -135,6 +145,7 @@ async function readLogs() {
 }
 
 async function serveLogs(res) {
+  setCorsHeaders(res);
   const entries = await readLogs();
   res.writeHead(200, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify({ entries }));
@@ -186,6 +197,7 @@ function forwardWebhook(callback) {
 }
 
 async function handleOpen(req, res) {
+  setCorsHeaders(res);
   let body = '';
   req.on('data', chunk => {
     body += chunk;
@@ -223,6 +235,16 @@ async function handleOpen(req, res) {
 }
 
 const server = http.createServer((req, res) => {
+  // MANEJAR OPTIONS REQUESTS (PREFLIGHT CORS)
+  if (req.method === 'OPTIONS') {
+    setCorsHeaders(res);
+    res.writeHead(200);
+    res.end();
+    return;
+  }
+
+  setCorsHeaders(res);
+
   if (req.method === 'GET' && req.url === '/') {
     serveIndex(res);
     return;
