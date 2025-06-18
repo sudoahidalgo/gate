@@ -88,6 +88,9 @@
       opacity: 0.6;
       cursor: not-allowed;
     }
+    .hidden {
+      display: none;
+    }
     #msg { margin-top: 1.2rem; font-weight: 600; }
     #msg.ok { color: #23bc6b; }
     #msg.err { color: #ee5253; }
@@ -235,15 +238,18 @@
       return `${m}:${s}`;
     }
 
-    function iniciarTimer() {
+    function iniciarTimer(btn) {
       const timerEl = document.getElementById('timer');
       const progress = document.getElementById('progress-bar');
       const progressContainer = document.querySelector('.progress');
+      const inputEl = document.getElementById('codigo');
       let restantes = DURACION_CIERRE;
 
       clearInterval(timerInterval);
       timerEl.style.display = 'block';
       progressContainer.style.display = 'block';
+      if (btn) btn.style.display = 'none';
+      inputEl.disabled = true;
       timerEl.textContent = `Cierre en ${formatoTiempo(restantes)}`;
       progress.style.width = '100%';
 
@@ -260,6 +266,8 @@
           setTimeout(() => {
             timerEl.style.display = 'none';
             progressContainer.style.display = 'none';
+            if (btn) btn.style.display = 'inline-block';
+            inputEl.disabled = false;
           }, 3000);
           setTimeout(() => {
             msgEl.textContent = '';
@@ -312,7 +320,7 @@
           msg.textContent = '¡Listo! El portón se está abriendo.';
           msg.className = 'ok';
           updateConnectionStatus(true);
-          iniciarTimer();
+          iniciarTimer(btn);
           
           // Limpiar el código después de éxito
           document.getElementById('codigo').value = '';
