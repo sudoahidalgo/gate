@@ -32,9 +32,7 @@ function minutes(t) {
 
 function getNow() {
   const tz = process.env.TIMEZONE || 'America/Costa_Rica';
-  return tz
-    ? new Date(new Date().toLocaleString('en-US', { timeZone: tz }))
-    : new Date();
+  return new Date(new Date().toLocaleString('en-US', { timeZone: tz }));
 }
 
 function codeAllowed(code) {
@@ -43,12 +41,14 @@ function codeAllowed(code) {
   if (!code.days.includes(day)) return false;
   const cur = now.getHours() * 60 + now.getMinutes();
   
-  // Check both old and new column names for compatibility
+  // Support both old and new column names
   const startTime = code.start_time || code.start || '00:00';
   const endTime = code.end_time || code.end || '23:59';
   
   const startM = minutes(startTime);
   const endM = minutes(endTime);
+  
+  console.log(`Code check: PIN ${code.pin}, Day ${day} (allowed: ${code.days}), Time ${cur} (${startM}-${endM})`);
   
   if (startM <= endM) {
     return cur >= startM && cur <= endM;
@@ -148,23 +148,11 @@ async function handleOpen(req, res) {
     try {
       const data = JSON.parse(body);
       const pin = data.pin || 'unknown';
-      console.log(`Attempting to open with PIN: ${pin}`);
+      console.log(`Attempting to open with PIN: ${pin} at ${getNow().toISOString()}`);
       
       const code = await pinAllowed(pin);
       if (!code) {
         console.log(`PIN ${pin} rejected - invalid or out of schedule`);
-        
-        // Check if PIN exists at all
-        const { data: allCodes, error } = await supabase
-          .from('codes')
-          .select('*')
-          .eq('pin', pin);
-        
-        if (error || !allCodes || allCodes.length === 0) {
-          console.log(`PIN ${pin} not found in database`);
-        } else {
-          console.log(`PIN ${pin} found but not allowed right now:`, allCodes[0]);
-        }
         
         res.writeHead(401, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ ok: false, error: 'Código inválido o fuera de horario' }));
@@ -199,11 +187,10 @@ const server = http.createServer((req, res) => {
     return;
   }
   if (req.method === 'GET' && req.url === '/debug') {
-    // Debug endpoint to check current time and codes
     loadCodes().then(codes => {
       const now = getNow();
       const debug = {
-        timezone: process.env.TIMEZONE || 'America/Costa_Rica',
+        timezone: process.env.TIMEZONE || 'America/Costa_Rica (default)',
         currentTime: now.toISOString(),
         day: now.getDay(),
         currentMinutes: now.getHours() * 60 + now.getMinutes(),
