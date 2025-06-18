@@ -207,22 +207,20 @@
       border-radius: 10px;
       margin: 10px 0;
     }
-    
-    .form-check {
+
+    .day-btn {
       background: white;
+      border: 1px solid #e9ecef;
       padding: 10px 15px;
       border-radius: 8px;
       box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-      transition: transform 0.2s ease;
+      cursor: pointer;
+      transition: background-color 0.2s ease, color 0.2s ease;
     }
-    
-    .form-check:hover {
-      transform: translateY(-2px);
-    }
-    
-    .form-check-input:checked {
-      background-color: #667eea;
-      border-color: #667eea;
+
+    .day-btn.active {
+      background: #667eea;
+      color: white;
     }
     
     .time-input-group {
@@ -536,48 +534,13 @@
               <div class="mt-3">
                 <label class="form-label fw-bold">Días de la Semana Habilitados</label>
                 <div class="checkbox-container" id="dias">
-                  <div class="form-check">
-                    <input class="form-check-input" type="checkbox" value="0" id="d0">
-                    <label class="form-check-label fw-bold" for="d0">
-                      <i class="fas fa-calendar-day"></i> Domingo
-                    </label>
-                  </div>
-                  <div class="form-check">
-                    <input class="form-check-input" type="checkbox" value="1" id="d1">
-                    <label class="form-check-label fw-bold" for="d1">
-                      <i class="fas fa-calendar-day"></i> Lunes
-                    </label>
-                  </div>
-                  <div class="form-check">
-                    <input class="form-check-input" type="checkbox" value="2" id="d2">
-                    <label class="form-check-label fw-bold" for="d2">
-                      <i class="fas fa-calendar-day"></i> Martes
-                    </label>
-                  </div>
-                  <div class="form-check">
-                    <input class="form-check-input" type="checkbox" value="3" id="d3">
-                    <label class="form-check-label fw-bold" for="d3">
-                      <i class="fas fa-calendar-day"></i> Miércoles
-                    </label>
-                  </div>
-                  <div class="form-check">
-                    <input class="form-check-input" type="checkbox" value="4" id="d4">
-                    <label class="form-check-label fw-bold" for="d4">
-                      <i class="fas fa-calendar-day"></i> Jueves
-                    </label>
-                  </div>
-                  <div class="form-check">
-                    <input class="form-check-input" type="checkbox" value="5" id="d5">
-                    <label class="form-check-label fw-bold" for="d5">
-                      <i class="fas fa-calendar-day"></i> Viernes
-                    </label>
-                  </div>
-                  <div class="form-check">
-                    <input class="form-check-input" type="checkbox" value="6" id="d6">
-                    <label class="form-check-label fw-bold" for="d6">
-                      <i class="fas fa-calendar-day"></i> Sábado
-                    </label>
-                  </div>
+                  <button type="button" class="day-btn" data-day="0">Domingo</button>
+                  <button type="button" class="day-btn" data-day="1">Lunes</button>
+                  <button type="button" class="day-btn" data-day="2">Martes</button>
+                  <button type="button" class="day-btn" data-day="3">Miércoles</button>
+                  <button type="button" class="day-btn" data-day="4">Jueves</button>
+                  <button type="button" class="day-btn" data-day="5">Viernes</button>
+                  <button type="button" class="day-btn" data-day="6">Sábado</button>
                 </div>
               </div>
               
@@ -1080,14 +1043,14 @@
       document.getElementById('hora-inicio').value = code.start || '08:00';
       document.getElementById('hora-fin').value = code.end || '18:00';
       
-      // Clear all checkboxes first
-      document.querySelectorAll('#dias input[type="checkbox"]').forEach(cb => cb.checked = false);
-      
-      // Check the appropriate days
+      // Clear all day buttons first
+      document.querySelectorAll('#dias .day-btn').forEach(btn => btn.classList.remove('active'));
+
+      // Activate the appropriate days
       if (code.days) {
         code.days.forEach(day => {
-          const checkbox = document.getElementById(`d${day}`);
-          if (checkbox) checkbox.checked = true;
+          const btn = document.querySelector(`#dias .day-btn[data-day="${day}"]`);
+          if (btn) btn.classList.add('active');
         });
       }
       
@@ -1118,6 +1081,7 @@
       document.getElementById('code-form').reset();
       document.getElementById('hora-inicio').value = '08:00';
       document.getElementById('hora-fin').value = '18:00';
+      document.querySelectorAll('#dias .day-btn').forEach(btn => btn.classList.remove('active'));
       
       // Habilitar PIN input
       document.getElementById('new-pin').disabled = false;
@@ -1238,8 +1202,8 @@
         const user = document.getElementById('new-user').value.trim();
         const start = document.getElementById('hora-inicio').value;
         const end = document.getElementById('hora-fin').value;
-        const days = Array.from(document.querySelectorAll('#dias input:checked'))
-          .map(cb => parseInt(cb.value));
+        const days = Array.from(document.querySelectorAll('#dias .day-btn.active'))
+          .map(btn => parseInt(btn.dataset.day));
         
         if (days.length === 0) {
           throw new Error('Debe seleccionar al menos un día de la semana');
@@ -1292,6 +1256,10 @@
       
       cargarLogs();
       cargarCodigos();
+
+      document.querySelectorAll('#dias .day-btn').forEach(btn => {
+        btn.addEventListener('click', () => btn.classList.toggle('active'));
+      });
       
       // Auto-refresh every 30 seconds
       setInterval(() => {
