@@ -40,7 +40,7 @@ function codeAllowed(code) {
   const now = new Date(getCurrentTimeInTimezone());
   const day = now.getDay();
   
-  console.log(`Checking code for user ${code.user}:`);
+  console.log(`Checking code for user ${code.user || code.username || 'Unknown'}:`);
   console.log(`  Current time (${TIMEZONE}): ${now.toLocaleString()}`);
   console.log(`  Current day: ${day} (0=Sunday, 6=Saturday)`);
   console.log(`  Allowed days: [${code.days.join(', ')}]`);
@@ -85,7 +85,7 @@ async function pinAllowed(pin) {
     return null;
   }
   
-  console.log(`✅ PIN found for user: ${data.user}`);
+  console.log(`✅ PIN found for user: ${data.user || data.username || 'Unknown'}`);
   const allowed = codeAllowed(data);
   console.log(`🚪 Access ${allowed ? 'GRANTED' : 'DENIED'}\n`);
   
@@ -286,7 +286,7 @@ async function handleOpen(req, res) {
       forwardWebhook(async (error) => {
         if (error) {
           // Webhook failed
-          console.error(`❌ Gate opening failed for ${code.user}: ${error.message}`);
+          console.error(`❌ Gate opening failed for ${code.user || code.username || 'Unknown'}: ${error.message}`);
           await appendLog(pin, code.user, false, error.message);
           res.writeHead(500, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ 
@@ -295,7 +295,7 @@ async function handleOpen(req, res) {
           }));
         } else {
           // Webhook succeeded
-          console.log(`✅ Gate opened successfully for ${code.user}`);
+          console.log(`✅ Gate opened successfully for ${code.user || code.username || 'Unknown'}`);
           await appendLog(pin, code.user, true);
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ ok: true }));

@@ -133,7 +133,7 @@ exports.handler = async (event, context) => {
       };
     }
 
-    console.log(`Netlify function: PIN ${pin} accepted for user ${code.user}`);
+    console.log(`Netlify function: PIN ${pin} accepted for user ${code.user || code.username || 'Unknown'}`);
     await appendLog(pin, code.user);
 
     try {

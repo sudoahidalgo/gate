@@ -77,9 +77,10 @@ exports.handler = async (event, context) => {
           body: JSON.stringify({ error: 'PIN inválido' })
         };
       }
+      const username = data.user || data.username || '';
       await saveCode({
         pin,
-        username: data.username || '',
+        username,
         days: Array.isArray(data.days) ? data.days : [],
         start_time: data.start_time || '00:00',
         end_time: data.end_time || '23:59'
@@ -95,8 +96,9 @@ exports.handler = async (event, context) => {
     if (event.httpMethod === 'PUT') {
       const pin = decodeURIComponent(event.path.split('/').pop());
       const data = JSON.parse(event.body || '{}');
+      const username = data.user || data.username || '';
       await updateCode(pin, {
-        username: data.username || '',
+        username,
         days: Array.isArray(data.days) ? data.days : [],
         start_time: data.start_time || '00:00',
         end_time: data.end_time || '23:59'
