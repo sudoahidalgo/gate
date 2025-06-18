@@ -8,6 +8,8 @@ const { createClient } = require('@supabase/supabase-js');
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 const TIMEZONE = process.env.TIMEZONE || 'America/Costa_Rica'; // Default to Costa Rica timezone
+const WEBHOOK_URL = process.env.WEBHOOK_URL ||
+  'https://dyaxguerproyd2kte4awwggu9ylh6rsd.ui.nabu.casa/api/webhook/porton_martes';
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
 async function loadCodes() {
@@ -89,8 +91,6 @@ async function pinAllowed(pin) {
   
   return allowed ? data : null;
 }
-
-const WEBHOOK_URL = 'https://dyaxguerproyd2kte4awwggu9ylh6rsd.ui.nabu.casa/api/webhook/porton_martes';
 
 function serveIndex(res) {
   fs.readFile(path.join(__dirname, 'index.html'), (err, data) => {
