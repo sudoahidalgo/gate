@@ -21,6 +21,7 @@ some configuration details. Define the following variables:
 - `SUPABASE_SERVICE_KEY` – Service role key with access to your database.
 - `TIMEZONE` – IANA time zone used when validating code schedules (defaults to
   `UTC`).
+- `WEBHOOK_URL` – Endpoint triggered when a valid code opens the gate.
 
 When deploying to Netlify, set these variables in the **Site settings →
 Environment variables** section of the Netlify dashboard. Remember to define
@@ -31,6 +32,8 @@ form:
 ```bash
 SUPABASE_URL=your-supabase-url
 SUPABASE_SERVICE_KEY=your-service-key
+TIMEZONE=America/Costa_Rica
+WEBHOOK_URL=https://my-home-assistant.example/api/webhook/porton
 ```
 
 ## Running Locally
