@@ -3,271 +3,666 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Administración</title>
+  <title>Administración - Portón HiVe</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet">
+  <style>
+    :root {
+      --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      --success-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+      --dark-gradient: linear-gradient(135deg, #434343 0%, #000000 100%);
+    }
+    
+    body {
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      min-height: 100vh;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    
+    .navbar {
+      background: var(--primary-gradient);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+    }
+    
+    .card {
+      border: none;
+      border-radius: 15px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      backdrop-filter: blur(10px);
+      background: rgba(255, 255, 255, 0.95);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+    }
+    
+    .card-header {
+      background: var(--primary-gradient);
+      color: white;
+      border-radius: 15px 15px 0 0 !important;
+      padding: 1.5rem;
+      border: none;
+    }
+    
+    .card-header h4 {
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .btn-primary {
+      background: var(--primary-gradient);
+      border: none;
+      border-radius: 10px;
+      padding: 12px 30px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+    }
+    
+    .btn-success {
+      background: var(--success-gradient);
+      border: none;
+      border-radius: 10px;
+    }
+    
+    .btn-info {
+      background: var(--warning-gradient);
+      border: none;
+      border-radius: 10px;
+    }
+    
+    .table {
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+    }
+    
+    .table thead th {
+      background: var(--dark-gradient);
+      color: white;
+      border: none;
+      font-weight: 600;
+      padding: 15px;
+    }
+    
+    .table tbody tr {
+      transition: background-color 0.3s ease;
+    }
+    
+    .table tbody tr:hover {
+      background-color: rgba(102, 126, 234, 0.1);
+    }
+    
+    .form-control, .form-select {
+      border-radius: 10px;
+      border: 2px solid #e9ecef;
+      padding: 12px 15px;
+      transition: all 0.3s ease;
+    }
+    
+    .form-control:focus, .form-select:focus {
+      border-color: #667eea;
+      box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+    }
+    
+    .status-badge {
+      padding: 8px 15px;
+      border-radius: 20px;
+      font-weight: 600;
+      font-size: 0.85rem;
+    }
+    
+    .status-active {
+      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      color: white;
+    }
+    
+    .status-inactive {
+      background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+      color: white;
+    }
+    
+    .stats-card {
+      background: var(--success-gradient);
+      color: white;
+      border-radius: 15px;
+      padding: 20px;
+      text-align: center;
+    }
+    
+    .stats-number {
+      font-size: 2.5rem;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+    
+    .checkbox-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      padding: 15px;
+      background: #f8f9fa;
+      border-radius: 10px;
+      margin: 10px 0;
+    }
+    
+    .form-check {
+      background: white;
+      padding: 10px 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      transition: transform 0.2s ease;
+    }
+    
+    .form-check:hover {
+      transform: translateY(-2px);
+    }
+    
+    .form-check-input:checked {
+      background-color: #667eea;
+      border-color: #667eea;
+    }
+    
+    .time-input-group {
+      display: flex;
+      gap: 15px;
+      align-items: center;
+    }
+    
+    .time-input {
+      position: relative;
+    }
+    
+    .time-input::before {
+      content: '🕐';
+      position: absolute;
+      left: 15px;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 10;
+    }
+    
+    .time-input input {
+      padding-left: 45px;
+    }
+    
+    .loading-spinner {
+      display: none;
+      margin: 20px auto;
+      width: 40px;
+      height: 40px;
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #667eea;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .alert {
+      border: none;
+      border-radius: 10px;
+      padding: 15px 20px;
+    }
+    
+    .fade-in {
+      animation: fadeIn 0.5s ease-in;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
 </head>
-<body class="bg-light">
-  <header class="p-3 mb-4 border-bottom bg-body-tertiary">
+<body>
+  <!-- Navigation -->
+  <nav class="navbar navbar-expand-lg">
     <div class="container">
-      <div class="d-flex flex-wrap align-items-center justify-content-center justify-content-lg-start">
-        <a href="/" class="d-flex align-items-center mb-2 mb-lg-0 link-body-emphasis text-decoration-none">
-          <span class="fs-4">Panel Admin</span>
-        </a>
-        <ul class="nav col-12 col-lg-auto me-lg-auto mb-2 justify-content-center mb-md-0">
-          <li><a href="/admin" class="nav-link px-2 link-secondary">Códigos</a></li>
-          <li><a href="/admin/logs" class="nav-link px-2 link-body-emphasis">Logs</a></li>
-        </ul>
-        <div class="text-end">
-          <a href="/" class="btn btn-sm btn-outline-primary">Salir</a>
+      <span class="navbar-brand text-white fw-bold">
+        <i class="fas fa-shield-alt"></i> Portal Administrativo HiVe
+      </span>
+      <div class="d-flex">
+        <button class="btn btn-outline-light btn-sm" onclick="refreshAll()">
+          <i class="fas fa-sync-alt"></i> Actualizar
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container py-4">
+    <!-- Statistics Row -->
+    <div class="row mb-4">
+      <div class="col-md-4">
+        <div class="stats-card">
+          <div class="stats-number" id="total-logs">0</div>
+          <div>Total Accesos</div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="stats-card" style="background: var(--warning-gradient);">
+          <div class="stats-number" id="total-codes">0</div>
+          <div>Códigos Activos</div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="stats-card" style="background: var(--dark-gradient);">
+          <div class="stats-number" id="today-logs">0</div>
+          <div>Accesos Hoy</div>
         </div>
       </div>
     </div>
-  </header>
-  <div class="container py-4">
-    <h1 class="mb-4">Administración de Códigos</h1>
 
-    <h2 class="mt-4" id="form-title">Agregar Código</h2>
-    <form id="code-form" class="row gy-2 gx-3 align-items-end">
-      <input type="hidden" id="edit-pin" value="">
-      <div class="col-auto">
-        <input type="text" class="form-control" id="new-pin" placeholder="PIN" maxlength="4" required>
+    <!-- Recent Activity -->
+    <div class="card mb-4 fade-in">
+      <div class="card-header">
+        <h4><i class="fas fa-history"></i> Registro de Actividad Reciente</h4>
       </div>
-      <div class="col-auto">
-        <input type="text" class="form-control" id="new-user" placeholder="Usuario" required>
-      </div>
-      <div class="col-12">
-        <label class="form-label d-block">Días habilitados</label>
-        <div id="dias" class="d-flex flex-wrap gap-3">
-          <div class="form-check"><input class="form-check-input" type="checkbox" value="0" id="d0"><label class="form-check-label" for="d0">Dom</label></div>
-          <div class="form-check"><input class="form-check-input" type="checkbox" value="1" id="d1"><label class="form-check-label" for="d1">Lun</label></div>
-          <div class="form-check"><input class="form-check-input" type="checkbox" value="2" id="d2"><label class="form-check-label" for="d2">Mar</label></div>
-          <div class="form-check"><input class="form-check-input" type="checkbox" value="3" id="d3"><label class="form-check-label" for="d3">Mié</label></div>
-          <div class="form-check"><input class="form-check-input" type="checkbox" value="4" id="d4"><label class="form-check-label" for="d4">Jue</label></div>
-          <div class="form-check"><input class="form-check-input" type="checkbox" value="5" id="d5"><label class="form-check-label" for="d5">Vie</label></div>
-          <div class="form-check"><input class="form-check-input" type="checkbox" value="6" id="d6"><label class="form-check-label" for="d6">Sáb</label></div>
+      <div class="card-body">
+        <div class="loading-spinner" id="logs-loading"></div>
+        <div class="table-responsive">
+          <table class="table table-hover" id="log-table">
+            <thead>
+              <tr>
+                <th><i class="fas fa-calendar"></i> Fecha y Hora</th>
+                <th><i class="fas fa-user"></i> Usuario</th>
+                <th><i class="fas fa-key"></i> PIN</th>
+                <th><i class="fas fa-info-circle"></i> Estado</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
         </div>
       </div>
-      <div class="col-md-auto">
-        <label class="mdc-text-field mdc-text-field--outlined" id="hora-inicio-field">
-          <input type="text" class="mdc-text-field__input" id="hora-inicio" required>
-          <span class="mdc-notched-outline">
-            <span class="mdc-notched-outline__leading"></span>
-            <span class="mdc-notched-outline__notch">
-              <span class="mdc-floating-label">Inicio</span>
-            </span>
-            <span class="mdc-notched-outline__trailing"></span>
-          </span>
-        </label>
-      </div>
-      <div class="col-md-auto">
-        <label class="mdc-text-field mdc-text-field--outlined" id="hora-fin-field">
-          <input type="text" class="mdc-text-field__input" id="hora-fin" required>
-          <span class="mdc-notched-outline">
-            <span class="mdc-notched-outline__leading"></span>
-            <span class="mdc-notched-outline__notch">
-              <span class="mdc-floating-label">Fin</span>
-            </span>
-            <span class="mdc-notched-outline__trailing"></span>
-          </span>
-        </label>
-      </div>
-      <div class="col-12">
-        <button type="submit" class="btn btn-primary mt-2" id="submit-btn">Agregar</button>
-        <button type="button" class="btn btn-secondary mt-2 ms-2" id="cancel-btn" onclick="cancelEdit()" style="display: none;">Cancelar</button>
-      </div>
-    </form>
+    </div>
 
-    <h2 class="mt-5">Códigos Actuales</h2>
-    <table class="table table-striped" id="code-table">
-      <thead>
-        <tr>
-          <th>PIN</th>
-          <th>Usuario</th>
-          <th>Días</th>
-          <th>Horario</th>
-          <th>Acciones</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
+    <!-- Add New Code -->
+    <div class="card mb-4 fade-in">
+      <div class="card-header">
+        <h4><i class="fas fa-plus-circle"></i> Agregar Nuevo Código de Acceso</h4>
+      </div>
+      <div class="card-body">
+        <form id="code-form">
+          <div class="row g-3">
+            <div class="col-md-3">
+              <label class="form-label fw-bold">PIN (4 dígitos)</label>
+              <input type="text" class="form-control" id="new-pin" placeholder="1234" maxlength="4" pattern="[0-9]{4}" required>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-bold">Nombre del Usuario</label>
+              <input type="text" class="form-control" id="new-user" placeholder="Juan Pérez" required>
+            </div>
+            <div class="col-md-5">
+              <label class="form-label fw-bold">Horario Permitido</label>
+              <div class="time-input-group">
+                <div class="time-input flex-fill">
+                  <input type="text" class="form-control" id="hora-inicio" placeholder="08:00" required>
+                </div>
+                <span class="fw-bold">hasta</span>
+                <div class="time-input flex-fill">
+                  <input type="text" class="form-control" id="hora-fin" placeholder="18:00" required>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="mt-3">
+            <label class="form-label fw-bold">Días de la Semana Habilitados</label>
+            <div class="checkbox-container" id="dias">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" value="0" id="d0">
+                <label class="form-check-label fw-bold" for="d0">
+                  <i class="fas fa-calendar-day"></i> Domingo
+                </label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" value="1" id="d1">
+                <label class="form-check-label fw-bold" for="d1">
+                  <i class="fas fa-calendar-day"></i> Lunes
+                </label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" value="2" id="d2">
+                <label class="form-check-label fw-bold" for="d2">
+                  <i class="fas fa-calendar-day"></i> Martes
+                </label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" value="3" id="d3">
+                <label class="form-check-label fw-bold" for="d3">
+                  <i class="fas fa-calendar-day"></i> Miércoles
+                </label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" value="4" id="d4">
+                <label class="form-check-label fw-bold" for="d4">
+                  <i class="fas fa-calendar-day"></i> Jueves
+                </label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" value="5" id="d5">
+                <label class="form-check-label fw-bold" for="d5">
+                  <i class="fas fa-calendar-day"></i> Viernes
+                </label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" value="6" id="d6">
+                <label class="form-check-label fw-bold" for="d6">
+                  <i class="fas fa-calendar-day"></i> Sábado
+                </label>
+              </div>
+            </div>
+          </div>
+          
+          <div class="mt-4 text-center">
+            <button type="submit" class="btn btn-primary btn-lg">
+              <i class="fas fa-save"></i> Guardar Código de Acceso
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Current Codes -->
+    <div class="card fade-in">
+      <div class="card-header">
+        <h4><i class="fas fa-list"></i> Códigos de Acceso Configurados</h4>
+      </div>
+      <div class="card-body">
+        <div class="loading-spinner" id="codes-loading"></div>
+        <div class="table-responsive">
+          <table class="table table-hover" id="code-table">
+            <thead>
+              <tr>
+                <th><i class="fas fa-key"></i> PIN</th>
+                <th><i class="fas fa-user"></i> Usuario</th>
+                <th><i class="fas fa-calendar-week"></i> Días</th>
+                <th><i class="fas fa-clock"></i> Horario</th>
+                <th><i class="fas fa-toggle-on"></i> Estado</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
   </div>
+
+  <!-- Success/Error Alerts -->
+  <div class="position-fixed top-0 end-0 p-3" style="z-index: 11">
+    <div id="alert-container"></div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script>
-    const inicioField = new mdc.textField.MDCTextField(document.getElementById('hora-inicio-field'));
-    const finField = new mdc.textField.MDCTextField(document.getElementById('hora-fin-field'));
-    flatpickr('#hora-inicio', {enableTime: true, noCalendar: true, dateFormat: 'H:i'});
-    flatpickr('#hora-fin', {enableTime: true, noCalendar: true, dateFormat: 'H:i'});
+    // Initialize time pickers
+    flatpickr('#hora-inicio', {
+      enableTime: true,
+      noCalendar: true,
+      dateFormat: 'H:i',
+      defaultDate: '08:00'
+    });
+    
+    flatpickr('#hora-fin', {
+      enableTime: true,
+      noCalendar: true,
+      dateFormat: 'H:i',
+      defaultDate: '18:00'
+    });
 
-    let isEditing = false;
-
-    function getDayNames(days) {
-      const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-      if (!Array.isArray(days)) return '';
-      return days.map(day => dayNames[day]).join(', ');
+    function showAlert(message, type = 'success') {
+      const alertContainer = document.getElementById('alert-container');
+      const alertId = 'alert-' + Date.now();
+      const alertHtml = `
+        <div class="alert alert-${type} alert-dismissible fade show" id="${alertId}">
+          <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-triangle'}"></i>
+          ${message}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      `;
+      alertContainer.insertAdjacentHTML('beforeend', alertHtml);
+      
+      // Auto-remove after 5 seconds
+      setTimeout(() => {
+        const alert = document.getElementById(alertId);
+        if (alert) {
+          const bsAlert = bootstrap.Alert.getOrCreateInstance(alert);
+          bsAlert.close();
+        }
+      }, 5000);
     }
 
+    async function cargarLogs() {
+      const loading = document.getElementById('logs-loading');
+      loading.style.display = 'block';
+      
+      try {
+        const res = await fetch('/logs');
+        if (!res.ok) throw new Error('Error al cargar logs');
+        
+        const data = await res.json();
+        const tbody = document.querySelector('#log-table tbody');
+        tbody.innerHTML = '';
+        
+        // Update statistics
+        document.getElementById('total-logs').textContent = data.entries.length;
+        
+        const today = new Date().toDateString();
+        const todayLogs = data.entries.filter(e => 
+          new Date(e.timestamp).toDateString() === today
+        ).length;
+        document.getElementById('today-logs').textContent = todayLogs;
+        
+        if (data.entries.length === 0) {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="4" class="text-center text-muted py-4">
+                <i class="fas fa-inbox fa-2x mb-2"></i><br>
+                No hay registros disponibles
+              </td>
+            </tr>
+          `;
+        } else {
+          data.entries.slice(0, 50).forEach(e => { // Show only last 50 entries
+            const date = new Date(e.timestamp);
+            const isToday = date.toDateString() === today;
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td>
+                <span class="badge ${isToday ? 'bg-success' : 'bg-secondary'} me-2">
+                  ${isToday ? 'HOY' : ''}
+                </span>
+                ${date.toLocaleString()}
+              </td>
+              <td>
+                <i class="fas fa-user-circle text-primary me-2"></i>
+                ${e.user || 'Usuario Desconocido'}
+              </td>
+              <td>
+                <code class="bg-light px-2 py-1 rounded">${e.pin}</code>
+              </td>
+              <td>
+                <span class="status-badge status-active">
+                  <i class="fas fa-check-circle"></i> Acceso Exitoso
+                </span>
+              </td>
+            `;
+            tbody.appendChild(tr);
+          });
+        }
+      } catch (error) {
+        showAlert('Error al cargar el registro de actividad: ' + error.message, 'danger');
+      } finally {
+        loading.style.display = 'none';
+      }
+    }
 
     async function cargarCodigos() {
+      const loading = document.getElementById('codes-loading');
+      loading.style.display = 'block';
+      
       try {
         const res = await fetch('/codes');
-        if (!res.ok) {
-          console.error('Error loading codes:', res.status, res.statusText);
-          return;
-        }
+        if (!res.ok) throw new Error('Error al cargar códigos');
+        
         const data = await res.json();
         const tbody = document.querySelector('#code-table tbody');
         tbody.innerHTML = '';
-        data.forEach(c => {
-          const dias = getDayNames(c.days);
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td>${c.pin}</td>
-            <td>${c.username}</td>
-            <td>${dias}</td>
-            <td>${c.start_time} - ${c.end_time}</td>
-            <td>
-              <button class="btn btn-sm btn-outline-primary me-1" onclick="editCode('${c.pin}')">Editar</button>
-              <button class="btn btn-sm btn-outline-danger" onclick="deleteCode('${c.pin}')">Eliminar</button>
-            </td>
-          `;
-          tbody.appendChild(tr);
-        });
-      } catch (error) {
-        console.error('Error loading codes:', error);
-        alert('Error al cargar los códigos');
-      }
-    }
-
-    async function editCode(pin) {
-      try {
-        const res = await fetch('/codes');
-        if (!res.ok) return;
-        const codes = await res.json();
-        const code = codes.find(c => c.pin === pin);
-        if (!code) return;
-
-        // Fill form with code data
-        document.getElementById('edit-pin').value = pin;
-        document.getElementById('new-pin').value = pin;
-        document.getElementById('new-pin').disabled = true;
-        document.getElementById('new-user').value = code.username;
-        document.getElementById('hora-inicio').value = code.start_time;
-        document.getElementById('hora-fin').value = code.end_time;
-
-        // Clear all checkboxes first
-        document.querySelectorAll('#dias input[type="checkbox"]').forEach(cb => cb.checked = false);
         
-        // Check the appropriate days
-        if (Array.isArray(code.days)) {
-          code.days.forEach(day => {
-            const checkbox = document.getElementById(`d${day}`);
-            if (checkbox) checkbox.checked = true;
+        // Update statistics
+        document.getElementById('total-codes').textContent = data.length;
+        
+        const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+        
+        if (data.length === 0) {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="5" class="text-center text-muted py-4">
+                <i class="fas fa-key fa-2x mb-2"></i><br>
+                No hay códigos configurados
+              </td>
+            </tr>
+          `;
+        } else {
+          data.forEach(c => {
+            const diasText = Array.isArray(c.days) 
+              ? c.days.map(d => dayNames[d]).join(', ')
+              : 'Sin días configurados';
+            
+            // Check if code is currently active
+            const now = new Date();
+            const currentDay = now.getDay();
+            const currentTime = now.getHours() * 60 + now.getMinutes();
+            const [startH, startM] = (c.start || '00:00').split(':').map(Number);
+            const [endH, endM] = (c.end || '23:59').split(':').map(Number);
+            const startTime = startH * 60 + startM;
+            const endTime = endH * 60 + endM;
+            
+            const isActiveDay = c.days && c.days.includes(currentDay);
+            const isActiveTime = startTime <= endTime 
+              ? (currentTime >= startTime && currentTime <= endTime)
+              : (currentTime >= startTime || currentTime <= endTime);
+            const isActive = isActiveDay && isActiveTime;
+            
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td>
+                <code class="bg-primary text-white px-3 py-2 rounded fs-6">${c.pin}</code>
+              </td>
+              <td>
+                <div class="d-flex align-items-center">
+                  <i class="fas fa-user-circle text-primary me-2 fs-5"></i>
+                  <strong>${c.user || 'Sin nombre'}</strong>
+                </div>
+              </td>
+              <td>
+                <div class="d-flex flex-wrap gap-1">
+                  ${c.days ? c.days.map(d => 
+                    `<span class="badge ${currentDay === d ? 'bg-success' : 'bg-secondary'}">${dayNames[d]}</span>`
+                  ).join('') : '<span class="text-muted">Sin configurar</span>'}
+                </div>
+              </td>
+              <td>
+                <i class="fas fa-clock text-info me-1"></i>
+                <strong>${c.start || '00:00'}</strong> - <strong>${c.end || '23:59'}</strong>
+              </td>
+              <td>
+                <span class="status-badge ${isActive ? 'status-active' : 'status-inactive'}">
+                  <i class="fas fa-${isActive ? 'check-circle' : 'times-circle'}"></i>
+                  ${isActive ? 'Activo' : 'Inactivo'}
+                </span>
+              </td>
+            `;
+            tbody.appendChild(tr);
           });
         }
-
-        // Update UI for editing mode
-        isEditing = true;
-        document.getElementById('form-title').textContent = 'Editar Código';
-        document.getElementById('submit-btn').textContent = 'Actualizar';
-        document.getElementById('cancel-btn').style.display = 'inline-block';
-
-        // Scroll to form
-        document.getElementById('code-form').scrollIntoView({ behavior: 'smooth' });
       } catch (error) {
-        console.error('Error editing code:', error);
-        alert('Error al editar el código');
-      }
-    }
-
-    function cancelEdit() {
-      isEditing = false;
-      document.getElementById('edit-pin').value = '';
-      document.getElementById('new-pin').disabled = false;
-      document.getElementById('code-form').reset();
-      document.getElementById('form-title').textContent = 'Agregar Código';
-      document.getElementById('submit-btn').textContent = 'Agregar';
-      document.getElementById('cancel-btn').style.display = 'none';
-    }
-
-    async function deleteCode(pin) {
-      if (!confirm(`¿Estás seguro de que quieres eliminar el código ${pin}?`)) {
-        return;
-      }
-
-      try {
-        const res = await fetch(`/codes/${pin}`, {
-          method: 'DELETE'
-        });
-
-        if (res.ok) {
-          cargarCodigos();
-          alert('Código eliminado exitosamente');
-        } else {
-          alert('Error al eliminar el código');
-        }
-      } catch (error) {
-        console.error('Error deleting code:', error);
-        alert('Error al eliminar el código');
+        showAlert('Error al cargar los códigos: ' + error.message, 'danger');
+      } finally {
+        loading.style.display = 'none';
       }
     }
 
     document.getElementById('code-form').addEventListener('submit', async e => {
       e.preventDefault();
       
+      const submitBtn = e.target.querySelector('button[type="submit"]');
+      const originalText = submitBtn.innerHTML;
+      submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+      submitBtn.disabled = true;
+      
       try {
         const pin = document.getElementById('new-pin').value.trim();
-        const username = document.getElementById('new-user').value.trim();
-        const start_time = document.getElementById('hora-inicio').value;
-        const end_time = document.getElementById('hora-fin').value;
-        const days = Array.from(document.querySelectorAll('#dias input:checked')).map(cb => parseInt(cb.value));
-
-        if (!pin || !username || !start_time || !end_time) {
-          alert('Por favor completa todos los campos');
-          return;
-        }
-
-        const data = { pin, username, start_time, end_time, days };
-        console.log('Sending data:', data);
-
-        let res;
-        if (isEditing) {
-          const editPin = document.getElementById('edit-pin').value;
-          res = await fetch(`/codes/${editPin}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
-          });
-        } else {
-          res = await fetch('/codes', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
-          });
-        }
-
-        console.log('Response status:', res.status);
+        const user = document.getElementById('new-user').value.trim();
+        const start = document.getElementById('hora-inicio').value;
+        const end = document.getElementById('hora-fin').value;
+        const days = Array.from(document.querySelectorAll('#dias input:checked'))
+          .map(cb => parseInt(cb.value));
         
-        if (res.ok) {
-          cancelEdit();
-          cargarCodigos();
-          alert(isEditing ? 'Código actualizado exitosamente' : 'Código agregado exitosamente');
-        } else {
-          const errorText = await res.text();
-          console.error('Server error:', errorText);
-          alert(`Error: ${res.status} - ${errorText}`);
+        if (days.length === 0) {
+          throw new Error('Debe seleccionar al menos un día de la semana');
         }
+        
+        const res = await fetch('/codes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pin, user, start, end, days })
+        });
+        
+        if (!res.ok) throw new Error('Error al guardar el código');
+        
+        document.getElementById('code-form').reset();
+        // Reset time pickers to default
+        document.getElementById('hora-inicio').value = '08:00';
+        document.getElementById('hora-fin').value = '18:00';
+        
+        await cargarCodigos();
+        showAlert('Código de acceso guardado exitosamente', 'success');
+        
       } catch (error) {
-        console.error('Error submitting form:', error);
-        alert('Error al procesar la solicitud');
+        showAlert('Error: ' + error.message, 'danger');
+      } finally {
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
       }
     });
 
-    // Initialize
-    cargarCodigos();
+    async function refreshAll() {
+      await Promise.all([cargarLogs(), cargarCodigos()]);
+      showAlert('Datos actualizados correctamente', 'info');
+    }
+
+    // Load data on page load
+    document.addEventListener('DOMContentLoaded', () => {
+      cargarLogs();
+      cargarCodigos();
+      
+      // Auto-refresh every 30 seconds
+      setInterval(() => {
+        cargarLogs();
+        cargarCodigos();
+      }, 30000);
+    });
+
+    // Validate PIN input (only numbers)
+    document.getElementById('new-pin').addEventListener('input', function(e) {
+      e.target.value = e.target.value.replace(/[^0-9]/g, '');
+    });
   </script>
 </body>
 </html>
