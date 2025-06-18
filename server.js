@@ -1,4 +1,37 @@
-const http = require('http');
+async function handleOpen(req, res) {
+  let body = '';
+  req.on('data', chunk => {
+    body += chunk;
+  });
+  req.on('end', async () => {
+    try {
+      const data = JSON.parse(body);
+      const pin = data.pin || 'unknown';
+      console.log(`Attempting to open with PIN: ${pin}`);
+      
+      const code = await pinAllowed(pin);
+      if (!code) {
+        console.log(`PIN ${pin} rejected - invalid or out of schedule`);
+        
+        // Check if PIN exists at all
+        const { data: allCodes, error } = await supabase
+          .from('codes')
+          .select('*')
+          .eq('pin', pin);
+        
+        if (error || !allCodes || allCodes.length === 0) {
+          console.log(`PIN ${pin} not found in database`);
+        } else {
+          console.log(`PIN ${pin} found but not allowed right now:`, allCodes[0]);
+        }
+        
+        res.writeHead(401, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, error: 'Código inválido o fuera de horario' }));
+        return;
+      }
+      
+      console.log(`PIN ${pin} accepted for user: ${code.user}`);
+      await appendLog(pin, code.useconst http = require('http');
 const https = require('https');
 const fs = require('fs');
 const path = require('path');
@@ -171,6 +204,30 @@ const server = http.createServer((req, res) => {
   }
   if (req.method === 'GET' && req.url === '/logs') {
     serveLogs(res);
+    return;
+  }
+  if (req.method === 'GET' && req.url === '/debug') {
+    // Debug endpoint to check current time and codes
+    loadCodes().then(codes => {
+      const now = new Date();
+      const costaRicaTime = new Date(now.getTime() - (6 * 60 * 60 * 1000));
+      const debug = {
+        serverTime: now.toISOString(),
+        costaRicaTime: costaRicaTime.toISOString(),
+        day: costaRicaTime.getUTCDay(),
+        currentMinutes: costaRicaTime.getUTCHours() * 60 + costaRicaTime.getUTCMinutes(),
+        codes: codes.map(c => ({
+          pin: c.pin,
+          user: c.user,
+          days: c.days,
+          start: c.start,
+          end: c.end,
+          allowed: codeAllowed(c)
+        }))
+      };
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(debug, null, 2));
+    });
     return;
   }
   if (req.method === 'GET' && req.url === '/codes') {
