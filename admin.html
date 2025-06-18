@@ -486,7 +486,7 @@
                   <tr>
                     <th><i class="fas fa-calendar"></i> Fecha y Hora</th>
                     <th><i class="fas fa-user"></i> Usuario</th>
-                    <th class="fas fa-key"></i> PIN</th>
+                    <th><i class="fas fa-key"></i> PIN</th>
                     <th><i class="fas fa-info-circle"></i> Estado</th>
                     <th><i class="fas fa-cog"></i> Detalles</th>
                   </tr>
@@ -584,6 +584,9 @@
               <div class="mt-4 text-center">
                 <button type="submit" class="btn btn-primary btn-lg">
                   <i class="fas fa-save"></i> Guardar Código de Acceso
+                </button>
+                <button type="button" class="btn btn-secondary btn-lg ms-2" onclick="cancelEdit()" id="cancel-btn" style="display: none;">
+                  <i class="fas fa-times"></i> Cancelar
                 </button>
               </div>
             </form>
@@ -1068,7 +1071,10 @@
 
     function editCode(index) {
       const code = allCodes[index];
+      editingPin = code.pin; // Establecer modo edición
+      
       document.getElementById('new-pin').value = code.pin;
+      document.getElementById('new-pin').disabled = true; // No permitir cambiar PIN al editar
       document.getElementById('new-user').value = code.user || '';
       document.getElementById('hora-inicio').value = code.start || '08:00';
       document.getElementById('hora-fin').value = code.end || '18:00';
@@ -1084,6 +1090,17 @@
         });
       }
       
+      // Cambiar el botón a modo edición
+      const submitBtn = document.querySelector('#code-form button[type="submit"]');
+      submitBtn.innerHTML = '<i class="fas fa-edit"></i> Actualizar Código';
+      
+      // Mostrar botón cancelar
+      document.getElementById('cancel-btn').style.display = 'inline-block';
+      
+      // Cambiar el título del formulario
+      const formHeader = document.querySelector('#codes .card-header h4');
+      formHeader.innerHTML = '<i class="fas fa-edit"></i> Editar Código de Acceso';
+      
       // Switch to codes tab and scroll to form
       const codesTab = new bootstrap.Tab(document.getElementById('codes-tab'));
       codesTab.show();
@@ -1091,6 +1108,27 @@
       setTimeout(() => {
         document.getElementById('code-form').scrollIntoView({ behavior: 'smooth' });
       }, 300);
+    }
+
+    function cancelEdit() {
+      editingPin = null;
+      
+      // Resetear formulario
+      document.getElementById('code-form').reset();
+      document.getElementById('hora-inicio').value = '08:00';
+      document.getElementById('hora-fin').value = '18:00';
+      
+      // Habilitar PIN input
+      document.getElementById('new-pin').disabled = false;
+      
+      // Resetear botones
+      const submitBtn = document.querySelector('#code-form button[type="submit"]');
+      submitBtn.innerHTML = '<i class="fas fa-save"></i> Guardar Código de Acceso';
+      document.getElementById('cancel-btn').style.display = 'none';
+      
+      // Resetear título
+      const formHeader = document.querySelector('#codes .card-header h4');
+      formHeader.innerHTML = '<i class="fas fa-plus-circle"></i> Agregar Nuevo Código de Acceso';
     }
 
     async function deleteCode(pin) {
@@ -1183,6 +1221,9 @@
       }
     }
 
+    // Variable para rastrear si estamos editando
+    let editingPin = null;
+
     document.getElementById('code-form').addEventListener('submit', async e => {
       e.preventDefault();
       
@@ -1203,17 +1244,29 @@
           throw new Error('Debe seleccionar al menos un día de la semana');
         }
         
-        await makeRequest('/codes', {
-          method: 'POST',
-          body: JSON.stringify({ pin, user, start, end, days })
-        });
-        
-        document.getElementById('code-form').reset();
-        document.getElementById('hora-inicio').value = '08:00';
-        document.getElementById('hora-fin').value = '18:00';
+        if (editingPin) {
+          // Modo edición - usar PUT
+          await makeRequest(`/codes/${editingPin}`, {
+            method: 'PUT',
+            body: JSON.stringify({ user, start, end, days })
+          });
+          showAlert('Código actualizado exitosamente', 'success');
+          cancelEdit();
+        } else {
+          // Modo creación - usar POST
+          await makeRequest('/codes', {
+            method: 'POST',
+            body: JSON.stringify({ pin, user, start, end, days })
+          });
+          showAlert('Código de acceso guardado exitosamente', 'success');
+          
+          // Resetear formulario para modo creación
+          document.getElementById('code-form').reset();
+          document.getElementById('hora-inicio').value = '08:00';
+          document.getElementById('hora-fin').value = '18:00';
+        }
         
         await cargarCodigos();
-        showAlert('Código de acceso guardado exitosamente', 'success');
         
       } catch (error) {
         showAlert('Error: ' + error.message, 'danger');
