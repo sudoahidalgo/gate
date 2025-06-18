@@ -150,6 +150,18 @@ function serveAdmin(res) {
   });
 }
 
+function serveLogsPage(res) {
+  fs.readFile(path.join(__dirname, 'logs.html'), (err, data) => {
+    if (err) {
+      res.writeHead(500, { 'Content-Type': 'text/plain' });
+      res.end('Server error');
+      return;
+    }
+    res.writeHead(200, { 'Content-Type': 'text/html' });
+    res.end(data);
+  });
+}
+
 async function readLogs() {
   try {
     const { data, error } = await supabase
@@ -253,6 +265,10 @@ const server = http.createServer((req, res) => {
   }
   if (req.method === 'GET' && req.url === '/admin') {
     serveAdmin(res);
+    return;
+  }
+  if (req.method === 'GET' && req.url === '/logs-view') {
+    serveLogsPage(res);
     return;
   }
   if (req.method === 'GET' && req.url === '/logs') {
