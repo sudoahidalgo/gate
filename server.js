@@ -240,6 +240,69 @@ async function handleCodes(req, res) {
   }
 }
 
+async function handleCodesWithPin(req, res, pin) {
+  setCorsHeaders(res);
+  
+  if (req.method === 'PUT') {
+    // Actualizar código existente
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', async () => {
+      try {
+        const data = JSON.parse(body);
+        const { error } = await supabase
+          .from('codes')
+          .update({
+            user: data.user || '',
+            days: Array.isArray(data.days) ? data.days : [],
+            start: data.start || '00:00',
+            end: data.end || '23:59'
+          })
+          .eq('pin', pin);
+          
+        if (error) {
+          console.error('Error updating code:', error);
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ ok: false, error: error.message }));
+          return;
+        }
+        
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true }));
+      } catch (err) {
+        console.error('Error updating code:', err);
+        res.writeHead(400, { 'Content-Type': 'text/plain' });
+        res.end('Invalid data');
+      }
+    });
+  }
+  
+  if (req.method === 'DELETE') {
+    // Eliminar código
+    try {
+      const { error } = await supabase
+        .from('codes')
+        .delete()
+        .eq('pin', pin);
+        
+      if (error) {
+        console.error('Error deleting code:', error);
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, error: error.message }));
+        return;
+      }
+      
+      console.log(`Code ${pin} deleted successfully`);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true }));
+    } catch (err) {
+      console.error('Error deleting code:', err);
+      res.writeHead(500, { 'Content-Type': 'text/plain' });
+      res.end('Server error');
+    }
+  }
+}
+
 async function handleLogs(req, res) {
   setCorsHeaders(res);
   const entries = await readLogs();
@@ -292,6 +355,14 @@ const server = http.createServer((req, res) => {
     return;
   }
   
+  // Handle /codes/{pin} routes for PUT and DELETE
+  const codesMatch = req.url.match(/^\/codes\/([^\/]+)$/);
+  if (codesMatch) {
+    const pin = codesMatch[1];
+    handleCodesWithPin(req, res, pin);
+    return;
+  }
+  
   if (req.method === 'POST' && req.url === '/open') {
     handleOpen(req, res);
     return;
@@ -315,6 +386,16 @@ if (require.main === module) {
     console.log(`Gate Control Server running on port ${PORT}`);
     console.log(`Webhook URL: ${WEBHOOK_URL}`);
     console.log(`Timezone: Costa Rica (GMT${COSTA_RICA_OFFSET})`);
+    console.log('Available endpoints:');
+    console.log('  GET  /               - Main page');
+    console.log('  GET  /admin          - Admin panel');
+    console.log('  GET  /codes          - Get all codes');
+    console.log('  POST /codes          - Create new code');
+    console.log('  PUT  /codes/{pin}    - Update code');
+    console.log('  DELETE /codes/{pin}  - Delete code');
+    console.log('  GET  /logs           - Get access logs');
+    console.log('  POST /open           - Open gate');
+    console.log('  POST /test-webhook   - Test webhook');
   });
 }
 
