@@ -195,7 +195,11 @@ async function handleOpen(req, res) {
       triggerWebhook(() => {
         console.log(`Gate opened successfully for ${code.user}`);
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ ok: true }));
+        res.end(JSON.stringify({ 
+          ok: true,
+          user: code.user,
+          message: `¡Bienvenido(a) ${code.user} a la Casa Hidalgo Venegas!`
+        }));
       });
       
     } catch (err) {
