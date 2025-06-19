@@ -484,7 +484,7 @@
               <table class="table table-hover" id="log-table">
                 <thead>
                   <tr>
-                    <th><i class="fas fa-calendar"></i> Fecha y Hora</th>
+                    <th><i class="fas fa-calendar"></i> Fecha y Hora (Costa Rica)</th>
                     <th><i class="fas fa-user"></i> Usuario</th>
                     <th><i class="fas fa-key"></i> PIN</th>
                     <th><i class="fas fa-info-circle"></i> Estado</th>
@@ -762,13 +762,7 @@
       }
     }
 
-    // NUEVA FUNCIÓN PARA FORMATEAR FECHA EN COSTA RICA
-    function formatearFechaCostaRica(timestamp) {
-      return moment(timestamp)
-        .tz('America/Costa_Rica')
-        .format('DD/MM/YYYY HH:mm:ss');
-    }
-
+    // ✅ FUNCIÓN CORREGIDA PARA TIMEZONE DE COSTA RICA
     async function cargarLogs() {
       const res = await fetch('/logs');
       if (!res.ok) {
@@ -776,20 +770,13 @@
         return;
       }
       const data = await res.json();
-      const tbody = document.querySelector('#log-table tbody');
-      tbody.innerHTML = '';
-      if (data.entries.length === 0) {
-        const tr = document.createElement('tr');
-        tr.innerHTML = '<td colspan="3" class="text-center">Sin registros</td>';
-        tbody.appendChild(tr);
-      } else {
-        data.entries.forEach(e => {
-          const tr = document.createElement('tr');
-          // CAMBIO AQUÍ: usar formatearFechaCostaRica en lugar de new Date().toLocaleString()
-          tr.innerHTML = `<td>${formatearFechaCostaRica(e.timestamp)}</td><td>${e.user || 'Desconocido'}</td><td>${e.pin}</td>`;
-          tbody.appendChild(tr);
-        });
-      }
+      allLogs = data.entries || [];
+      filteredLogs = [...allLogs];
+      
+      updateStatistics();
+      updateLogTable();
+      updateUserFilter();
+      updateDashboard();
     }
 
     function updateStatistics() {
@@ -819,15 +806,18 @@
         `;
       } else {
         filteredLogs.slice(0, 100).forEach(e => {
+          const tr = document.createElement('tr');
+          // ✅ CAMBIO AQUÍ: usar moment.js para formatear correctamente la fecha en timezone de Costa Rica
+          const fechaCostaRica = moment(e.timestamp).tz('America/Costa_Rica').format('DD/MM/YYYY HH:mm:ss');
           const date = new Date(e.timestamp);
           const isToday = date.toDateString() === today;
-          const tr = document.createElement('tr');
+          
           tr.innerHTML = `
             <td>
               <span class="badge ${isToday ? 'bg-success' : 'bg-secondary'} me-2">
                 ${isToday ? 'HOY' : ''}
               </span>
-              ${date.toLocaleString('es-CR', { timeZone: TZ })}
+              ${fechaCostaRica}
             </td>
             <td>
               <i class="fas fa-user-circle text-primary me-2"></i>
@@ -872,17 +862,21 @@
       if (recent.length === 0) {
         recentContainer.innerHTML = '<p class="text-muted">No hay actividad reciente</p>';
       } else {
-        recentContainer.innerHTML = recent.map(log => `
-          <div class="d-flex justify-content-between align-items-center mb-2 p-2 bg-light rounded">
-            <div>
-              <strong>${log.user || 'Desconocido'}</strong><br>
-              <small class="text-muted">${new Date(log.timestamp).toLocaleString('es-CR', { timeZone: TZ })}</small>
+        recentContainer.innerHTML = recent.map(log => {
+          // ✅ CAMBIO AQUÍ TAMBIÉN: usar moment.js para el dashboard
+          const fechaCostaRica = moment(log.timestamp).tz('America/Costa_Rica').format('DD/MM/YYYY HH:mm:ss');
+          return `
+            <div class="d-flex justify-content-between align-items-center mb-2 p-2 bg-light rounded">
+              <div>
+                <strong>${log.user || 'Desconocido'}</strong><br>
+                <small class="text-muted">${fechaCostaRica}</small>
+              </div>
+              <span class="badge ${log.success !== false ? 'bg-success' : 'bg-danger'}">
+                ${log.success !== false ? 'OK' : 'Error'}
+              </span>
             </div>
-            <span class="badge ${log.success !== false ? 'bg-success' : 'bg-danger'}">
-              ${log.success !== false ? 'OK' : 'Error'}
-            </span>
-          </div>
-        `).join('');
+          `;
+        }).join('');
       }
 
       // Popular codes
