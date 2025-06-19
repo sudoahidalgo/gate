@@ -9,14 +9,27 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
-const CODES_FILE = path.join(__dirname, 'codes.json');
+const WEBHOOK_URL = 'https://dyaxguerproyd2kte4awwggu9ylh6rsd.ui.nabu.casa/api/webhook/porton_abrir';
+const COSTA_RICA_OFFSET = -6; // GMT-6
 
-// FUNCIÓN PARA AGREGAR HEADERS CORS (MÁS PERMISIVO PARA DEBUG)
+// CORS headers
 function setCorsHeaders(res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
+}
+
+// Get current time in Costa Rica timezone
+function getCostaRicaTime() {
+  const now = new Date();
+  const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
+  return new Date(utcTime + (COSTA_RICA_OFFSET * 3600000));
+}
+
+// Convert time string (HH:MM) to minutes
+function timeToMinutes(timeStr) {
+  const [hours, minutes] = timeStr.split(':').map(Number);
+  return hours * 60 + minutes;
 }
 
 async function loadCodes() {
@@ -33,103 +46,69 @@ async function saveCode(code) {
   if (error) console.error('Error saving code:', error);
 }
 
-function minutes(t) {
-  const [h,m] = t.split(':').map(Number);
-  return h*60 + m;
-}
-
-// FUNCIÓN CORREGIDA: Usar hora de Costa Rica para validación
-function codeAllowed(code) {
-  // Obtener hora actual en Costa Rica (GMT-6)
-  const now = new Date();
-  const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
-  const costaRicaOffset = -6; // GMT-6
-  const costaRicaTime = new Date(utcTime + (costaRicaOffset * 3600000));
+function isCodeAllowed(code) {
+  const costaRicaTime = getCostaRicaTime();
+  const currentDay = costaRicaTime.getDay();
+  const currentMinutes = costaRicaTime.getHours() * 60 + costaRicaTime.getMinutes();
   
-  const day = costaRicaTime.getDay();
-  const cur = costaRicaTime.getHours() * 60 + costaRicaTime.getMinutes();
-  
-  // DEBUG: Imprimir información de validación
-  console.log(`[DEBUG] Validando código ${code.pin}:`);
-  console.log(`[DEBUG] Día actual (Costa Rica): ${day} (${['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'][day]})`);
-  console.log(`[DEBUG] Hora actual (Costa Rica): ${String(costaRicaTime.getHours()).padStart(2,'0')}:${String(costaRicaTime.getMinutes()).padStart(2,'0')}`);
-  console.log(`[DEBUG] Días permitidos: ${code.days}`);
-  console.log(`[DEBUG] Horario permitido: ${code.start} - ${code.end}`);
-  
-  if (!code.days.includes(day)) {
-    console.log(`[DEBUG] ❌ Día no permitido`);
+  // Check if current day is allowed
+  if (!code.days.includes(currentDay)) {
+    console.log(`Access denied: Day ${currentDay} not in allowed days [${code.days}]`);
     return false;
   }
   
-  const startM = minutes(code.start);
-  const endM = minutes(code.end);
-  let timeAllowed = false;
+  // Check if current time is within allowed hours
+  const startMinutes = timeToMinutes(code.start);
+  const endMinutes = timeToMinutes(code.end);
   
-  if (startM <= endM) {
-    timeAllowed = cur >= startM && cur <= endM;
+  let timeAllowed;
+  if (startMinutes <= endMinutes) {
+    // Normal time range (e.g., 08:00 to 18:00)
+    timeAllowed = currentMinutes >= startMinutes && currentMinutes <= endMinutes;
   } else {
-    timeAllowed = cur >= startM || cur <= endM;
+    // Overnight time range (e.g., 22:00 to 06:00)
+    timeAllowed = currentMinutes >= startMinutes || currentMinutes <= endMinutes;
   }
   
-  console.log(`[DEBUG] ${timeAllowed ? '✅' : '❌'} Horario ${timeAllowed ? 'permitido' : 'no permitido'}`);
+  if (!timeAllowed) {
+    const currentTime = `${String(costaRicaTime.getHours()).padStart(2, '0')}:${String(costaRicaTime.getMinutes()).padStart(2, '0')}`;
+    console.log(`Access denied: Current time ${currentTime} not in allowed range ${code.start}-${code.end}`);
+  }
   
   return timeAllowed;
 }
 
-async function pinAllowed(pin) {
-  console.log(`[DEBUG] Verificando PIN: ${pin}`);
-  
+async function validatePin(pin) {
   const { data, error } = await supabase
     .from('codes')
     .select('*')
     .eq('pin', pin)
     .single();
     
+  if (error || !data) {
+    console.log(`PIN validation failed: ${pin} not found`);
+    return null;
+  }
+  
+  if (!isCodeAllowed(data)) {
+    return null;
+  }
+  
+  console.log(`PIN validated: ${pin} for user ${data.user}`);
+  return data;
+}
+
+async function logAccess(pin, user) {
+  const timestamp = getCostaRicaTime().toISOString();
+  const { error } = await supabase
+    .from('logs')
+    .insert({ timestamp, pin, user });
+    
   if (error) {
-    console.log(`[DEBUG] ❌ Error en base de datos: ${error.message}`);
-    return null;
+    console.error('Error logging access:', error);
+  } else {
+    console.log(`Access logged: ${user} (${pin}) at ${timestamp}`);
   }
-  
-  if (!data) {
-    console.log(`[DEBUG] ❌ PIN no encontrado en base de datos`);
-    return null;
-  }
-  
-  console.log(`[DEBUG] ✅ PIN encontrado: ${data.user}`);
-  
-  const allowed = codeAllowed(data);
-  console.log(`[DEBUG] Resultado final: ${allowed ? '✅ PERMITIDO' : '❌ DENEGADO'}`);
-  
-  return allowed ? data : null;
-}
-
-// URL CORREGIDA DEL WEBHOOK
-const WEBHOOK_URL = 'https://dyaxguerproyd2kte4awwggu9ylh6rsd.ui.nabu.casa/api/webhook/porton_abrir';
-
-function serveIndex(res) {
-  setCorsHeaders(res);
-  fs.readFile(path.join(__dirname, 'index.html'), (err, data) => {
-    if (err) {
-      res.writeHead(500, { 'Content-Type': 'text/plain' });
-      res.end('Server error');
-      return;
-    }
-    res.writeHead(200, { 'Content-Type': 'text/html' });
-    res.end(data);
-  });
-}
-
-function serveAdmin(res) {
-  setCorsHeaders(res);
-  fs.readFile(path.join(__dirname, 'admin.html'), (err, data) => {
-    if (err) {
-      res.writeHead(500, { 'Content-Type': 'text/plain' });
-      res.end('Server error');
-      return;
-    }
-    res.writeHead(200, { 'Content-Type': 'text/html' });
-    res.end(data);
-  });
 }
 
 async function readLogs() {
@@ -137,6 +116,7 @@ async function readLogs() {
     .from('logs')
     .select('*')
     .order('timestamp', { ascending: false });
+    
   if (error) {
     console.error('Error fetching logs:', error);
     return [];
@@ -144,35 +124,8 @@ async function readLogs() {
   return data || [];
 }
 
-async function serveLogs(res) {
-  setCorsHeaders(res);
-  const entries = await readLogs();
-  res.writeHead(200, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify({ entries }));
-}
-
-// FUNCIÓN CORREGIDA: Guardar en hora de Costa Rica
-async function appendLog(pin, user) {
-  // Obtener tiempo actual en Costa Rica (GMT-6)
-  const now = new Date();
-  const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
-  const costaRicaOffset = -6; // GMT-6
-  const costaRicaTime = new Date(utcTime + (costaRicaOffset * 3600000));
-  
-  console.log(`[DEBUG] Guardando log: ${user} (${pin}) a las ${costaRicaTime.toISOString()}`);
-  
-  const { error } = await supabase
-    .from('logs')
-    .insert({ 
-      timestamp: costaRicaTime.toISOString(), 
-      pin, 
-      user 
-    });
-  if (error) console.error('Error writing log:', error);
-}
-
-function forwardWebhook(callback) {
-  console.log(`[DEBUG] Enviando webhook a: ${WEBHOOK_URL}`);
+function triggerWebhook(callback) {
+  console.log(`Triggering webhook: ${WEBHOOK_URL}`);
   
   const url = new URL(WEBHOOK_URL);
   const options = {
@@ -185,107 +138,87 @@ function forwardWebhook(callback) {
   };
 
   const req = (url.protocol === 'https:' ? https : http).request(options, res => {
-    console.log(`[DEBUG] ✅ Webhook respondió con status: ${res.statusCode}`);
+    console.log(`Webhook response: ${res.statusCode}`);
     res.on('data', () => {});
     res.on('end', () => callback());
   });
+  
   req.on('error', err => {
-    console.error('[DEBUG] ❌ Error en webhook:', err.message);
+    console.error('Webhook error:', err.message);
     callback();
   });
+  
   req.end();
+}
+
+// Route handlers
+function serveFile(filePath, contentType, res) {
+  setCorsHeaders(res);
+  fs.readFile(path.join(__dirname, filePath), (err, data) => {
+    if (err) {
+      res.writeHead(500, { 'Content-Type': 'text/plain' });
+      res.end('Server error');
+      return;
+    }
+    res.writeHead(200, { 'Content-Type': contentType });
+    res.end(data);
+  });
 }
 
 async function handleOpen(req, res) {
   setCorsHeaders(res);
   let body = '';
+  
   req.on('data', chunk => {
     body += chunk;
   });
+  
   req.on('end', async () => {
     try {
       const data = JSON.parse(body);
       const pin = data.pin || 'unknown';
       
-      console.log(`[DEBUG] ===== INTENTO DE APERTURA =====`);
-      console.log(`[DEBUG] PIN recibido: ${pin}`);
+      console.log(`Gate access attempt with PIN: ${pin}`);
       
-      const code = await pinAllowed(pin);
+      const code = await validatePin(pin);
       if (!code) {
-        console.log(`[DEBUG] ❌ ACCESO DENEGADO`);
         res.writeHead(401, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ ok: false, error: 'Código inválido o fuera de horario' }));
+        res.end(JSON.stringify({ 
+          ok: false, 
+          error: 'Código inválido o fuera de horario' 
+        }));
         return;
       }
       
-      console.log(`[DEBUG] ✅ ACCESO PERMITIDO - Procediendo a abrir portón`);
-      await appendLog(pin, code.user);
+      await logAccess(pin, code.user);
       
-      forwardWebhook(() => {
-        console.log(`[DEBUG] ✅ PROCESO COMPLETADO`);
+      triggerWebhook(() => {
+        console.log(`Gate opened successfully for ${code.user}`);
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ ok: true }));
       });
+      
     } catch (err) {
-      console.error('[DEBUG] ❌ Error en handleOpen:', err);
+      console.error('Error handling open request:', err);
       res.writeHead(400, { 'Content-Type': 'text/plain' });
       res.end('Invalid data');
     }
   });
 }
 
-// NUEVO: ENDPOINT TEST-WEBHOOK QUE TU WEBAPP ESTÁ BUSCANDO
-async function handleTestWebhook(req, res) {
+async function handleCodes(req, res) {
   setCorsHeaders(res);
-  console.log(`[DEBUG] ===== TEST WEBHOOK LLAMADO =====`);
   
-  // Simular test de webhook sin activar realmente el portón
-  console.log(`[DEBUG] Test webhook - NO se activará el portón real`);
+  if (req.method === 'GET') {
+    const codes = await loadCodes();
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(codes));
+    return;
+  }
   
-  res.writeHead(200, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify({ 
-    ok: true, 
-    message: 'Test webhook funcionando correctamente',
-    timestamp: new Date().toISOString()
-  }));
-}
-
-const server = http.createServer((req, res) => {
-  // Log todas las requests para debug
-  console.log(`[DEBUG] ${req.method} ${req.url} from ${req.headers.origin || 'no-origin'}`);
-
-  // MANEJAR OPTIONS REQUESTS (PREFLIGHT CORS)
-  if (req.method === 'OPTIONS') {
-    setCorsHeaders(res);
-    res.writeHead(200);
-    res.end();
-    return;
-  }
-
-  setCorsHeaders(res);
-
-  if (req.method === 'GET' && req.url === '/') {
-    serveIndex(res);
-    return;
-  }
-  if (req.method === 'GET' && req.url === '/admin') {
-    serveAdmin(res);
-    return;
-  }
-  if (req.method === 'GET' && req.url === '/logs') {
-    serveLogs(res);
-    return;
-  }
-  if (req.method === 'GET' && req.url === '/codes') {
-    loadCodes().then(codes => {
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify(codes));
-    });
-    return;
-  }
-  if (req.method === 'POST' && req.url === '/codes') {
+  if (req.method === 'POST') {
     let body = '';
-    req.on('data', c => { body += c; });
+    req.on('data', chunk => { body += chunk; });
     req.on('end', async () => {
       try {
         const data = JSON.parse(body);
@@ -298,41 +231,90 @@ const server = http.createServer((req, res) => {
         });
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ ok: true }));
-      } catch {
+      } catch (err) {
+        console.error('Error saving code:', err);
         res.writeHead(400, { 'Content-Type': 'text/plain' });
         res.end('Invalid data');
       }
     });
+  }
+}
+
+async function handleLogs(req, res) {
+  setCorsHeaders(res);
+  const entries = await readLogs();
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify({ entries }));
+}
+
+async function handleTestWebhook(req, res) {
+  setCorsHeaders(res);
+  console.log('Test webhook called - no actual gate activation');
+  
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify({ 
+    ok: true, 
+    message: 'Test webhook funcionando correctamente',
+    timestamp: getCostaRicaTime().toISOString()
+  }));
+}
+
+// Main server
+const server = http.createServer((req, res) => {
+  console.log(`${req.method} ${req.url}`);
+
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    setCorsHeaders(res);
+    res.writeHead(200);
+    res.end();
     return;
   }
+
+  // Route handling
+  if (req.method === 'GET' && req.url === '/') {
+    serveFile('index.html', 'text/html', res);
+    return;
+  }
+  
+  if (req.method === 'GET' && req.url === '/admin') {
+    serveFile('admin.html', 'text/html', res);
+    return;
+  }
+  
+  if (req.url === '/logs') {
+    handleLogs(req, res);
+    return;
+  }
+  
+  if (req.url === '/codes') {
+    handleCodes(req, res);
+    return;
+  }
+  
   if (req.method === 'POST' && req.url === '/open') {
     handleOpen(req, res);
     return;
   }
-  // NUEVO: ENDPOINT TEST-WEBHOOK
+  
   if (req.method === 'POST' && req.url === '/test-webhook') {
     handleTestWebhook(req, res);
     return;
   }
   
-  console.log(`[DEBUG] ❌ Endpoint no encontrado: ${req.method} ${req.url}`);
+  // 404 for unhandled routes
+  setCorsHeaders(res);
   res.writeHead(404, { 'Content-Type': 'text/plain' });
   res.end('Not Found');
 });
 
 const PORT = process.env.PORT || 3000;
+
 if (require.main === module) {
   server.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-    console.log(`[DEBUG] CORS configurado para permitir todos los orígenes`);
-    console.log(`[DEBUG] Endpoints disponibles:`);
-    console.log(`[DEBUG] - GET /`);
-    console.log(`[DEBUG] - GET /admin`);
-    console.log(`[DEBUG] - GET /codes`);
-    console.log(`[DEBUG] - GET /logs`);
-    console.log(`[DEBUG] - POST /codes`);
-    console.log(`[DEBUG] - POST /open`);
-    console.log(`[DEBUG] - POST /test-webhook`);
+    console.log(`Gate Control Server running on port ${PORT}`);
+    console.log(`Webhook URL: ${WEBHOOK_URL}`);
+    console.log(`Timezone: Costa Rica (GMT${COSTA_RICA_OFFSET})`);
   });
 }
 
