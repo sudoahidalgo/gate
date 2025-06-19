@@ -91,9 +91,48 @@
     .hidden {
       display: none;
     }
-    #msg { margin-top: 1.2rem; font-weight: 600; }
+    #msg { 
+      margin-top: 1.2rem; 
+      font-weight: 600;
+      line-height: 1.4;
+    }
     #msg.ok { color: #23bc6b; }
     #msg.err { color: #ee5253; }
+    
+    /* Estilos para mensaje de bienvenida personalizado */
+    .welcome-message {
+      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      color: white;
+      padding: 1.2rem;
+      border-radius: 1rem;
+      margin: 0.8rem 0;
+      box-shadow: 0 5px 15px rgba(79, 172, 254, 0.3);
+      animation: slideIn 0.5s ease-out;
+    }
+    
+    .welcome-message h3 {
+      margin: 0 0 0.5rem 0;
+      font-size: 1rem;
+      font-weight: 600;
+    }
+    
+    .welcome-message p {
+      margin: 0;
+      font-size: 0.85rem;
+      opacity: 0.9;
+    }
+    
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
     #timer {
       margin-top: 0.8rem;
       font-weight: 500;
@@ -260,7 +299,7 @@
           clearInterval(timerInterval);
           timerEl.textContent = 'Portón cerrado';
           const msgEl = document.getElementById('msg');
-          msgEl.textContent = 'Portón cerrado';
+          msgEl.innerHTML = '<div style="color: #ee5253; font-weight: 600;">🏠 Portón cerrado y seguro</div>';
           msgEl.className = 'err';
           progress.style.width = '0%';
           setTimeout(() => {
@@ -270,7 +309,7 @@
             inputEl.disabled = false;
           }, 3000);
           setTimeout(() => {
-            msgEl.textContent = '';
+            msgEl.innerHTML = '';
             msgEl.className = '';
           }, 10000);
         } else {
@@ -279,27 +318,42 @@
       }, 1000);
     }
 
+    // ✅ FUNCIÓN PARA MOSTRAR MENSAJE PERSONALIZADO
+    function mostrarMensajeBienvenida(usuario) {
+      const msgEl = document.getElementById('msg');
+      msgEl.className = 'ok';
+      msgEl.innerHTML = `
+        <div class="welcome-message">
+          <h3>¡Bienvenido(a) ${usuario} a la Casa Hidalgo Venegas!</h3>
+          <p>🔔 Ya se le avisó a los dueños que usted está entrando / saliendo</p>
+        </div>
+        <div style="color: #23bc6b; font-weight: 600; margin-top: 0.5rem;">
+          ✅ Portón abriéndose...
+        </div>
+      `;
+    }
+
     async function abrirPorton() {
       const input = document.getElementById('codigo').value;
       const msg = document.getElementById('msg');
       const btn = document.getElementById('abrir-btn');
       
-      msg.textContent = '';
+      msg.innerHTML = ''; // CAMBIO: usar innerHTML en lugar de textContent
       msg.className = '';
       
       if (input.length !== 4) {
-        msg.textContent = 'Ingresá los 4 dígitos completos.';
+        msg.innerHTML = '<div style="color: #ee5253; font-weight: 600;">⚠️ Ingresá los 4 dígitos completos.</div>';
         msg.className = 'err';
         return;
       }
       
       // Verificar conexión antes de enviar
       if (!isConnected) {
-        msg.textContent = 'No hay conexión con el servidor. Verificando...';
+        msg.innerHTML = '<div style="color: #ee5253; font-weight: 600;">🌐 No hay conexión con el servidor. Verificando...</div>';
         msg.className = 'err';
         await testConnection();
         if (!isConnected) {
-          msg.textContent = 'No se puede conectar al servidor. Revisa tu internet.';
+          msg.innerHTML = '<div style="color: #ee5253; font-weight: 600;">🌐 No se puede conectar al servidor. Revisa tu internet.</div>';
           msg.className = 'err';
           return;
         }
@@ -317,8 +371,16 @@
         
         if (response.ok) {
           const data = await response.json();
-          msg.textContent = '¡Listo! El portón se está abriendo.';
-          msg.className = 'ok';
+          
+          // ✅ CAMBIO PRINCIPAL: Mostrar mensaje personalizado si hay nombre de usuario
+          if (data.user) {
+            mostrarMensajeBienvenida(data.user);
+          } else {
+            // Fallback al mensaje original si no hay usuario
+            msg.innerHTML = '<div style="color: #23bc6b; font-weight: 600;">✅ ¡Listo! El portón se está abriendo.</div>';
+            msg.className = 'ok';
+          }
+          
           updateConnectionStatus(true);
           iniciarTimer(btn);
           
@@ -326,7 +388,8 @@
           document.getElementById('codigo').value = '';
         } else {
           const data = await response.json().catch(() => null);
-          msg.textContent = (data && data.error) ? data.error : 'Hubo un error. Intentá de nuevo.';
+          const errorMessage = (data && data.error) ? data.error : 'Hubo un error. Intentá de nuevo.';
+          msg.innerHTML = `<div style="color: #ee5253; font-weight: 600;">❌ ${errorMessage}</div>`;
           msg.className = 'err';
           
           if (response.status >= 500) {
@@ -335,7 +398,7 @@
         }
       } catch (error) {
         console.error('Error al abrir portón:', error);
-        msg.textContent = 'No se pudo conectar. Revisá tu internet.';
+        msg.innerHTML = '<div style="color: #ee5253; font-weight: 600;">🌐 No se pudo conectar. Revisá tu internet.</div>';
         msg.className = 'err';
         updateConnectionStatus(false);
       } finally {
