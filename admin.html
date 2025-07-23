@@ -1120,11 +1120,13 @@
     async function testWebhook() {
       try {
         const data = await makeRequest('/test-webhook', { method: 'POST' });
-        
-        if (data.success) {
+
+        const ok = data.success !== undefined ? data.success : data.ok;
+
+        if (ok) {
           showAlert('Test de webhook exitoso: ' + data.message, 'success');
         } else {
-          showAlert('Test de webhook falló: ' + data.error, 'danger');
+          showAlert('Test de webhook falló: ' + (data.error || 'Respuesta inválida'), 'danger');
         }
       } catch (error) {
         showAlert('Error en test de webhook: ' + error.message, 'danger');
@@ -1160,13 +1162,14 @@
     async function testWebhookDebug() {
       const resultsDiv = document.getElementById('webhook-results');
       resultsDiv.innerHTML = '<div class="loading-spinner" style="display: block;"></div>';
-      
+
       try {
         const data = await makeRequest('/test-webhook', { method: 'POST' });
+        const ok = data.success !== undefined ? data.success : data.ok;
         resultsDiv.innerHTML = `
           <h6>Resultado del Webhook:</h6>
           <div class="debug-info">
-            <strong>Estado:</strong> ${data.success ? 'Exitoso' : 'Fallido'}<br>
+            <strong>Estado:</strong> ${ok ? 'Exitoso' : 'Fallido'}<br>
             <strong>Mensaje:</strong> ${data.message}<br>
             ${data.result ? `<strong>Código de respuesta:</strong> ${data.result.statusCode}<br>` : ''}
             ${data.warning ? `<strong>Advertencia:</strong> ${data.warning}<br>` : ''}
