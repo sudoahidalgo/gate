@@ -670,6 +670,10 @@
     let filteredLogs = [];
     let systemLogs = [];
 
+    function formatNumber(num) {
+      return Number(num).toLocaleString('en-US');
+    }
+
     // Initialize time pickers
     flatpickr('#hora-inicio', {
       enableTime: true,
@@ -780,13 +784,13 @@
     }
 
     function updateStatistics() {
-      document.getElementById('total-logs').textContent = allLogs.length;
-      
+      document.getElementById('total-logs').textContent = formatNumber(allLogs.length);
+
       const today = new Date().toDateString();
-      const todayLogs = allLogs.filter(e => 
+      const todayLogs = allLogs.filter(e =>
         new Date(e.timestamp).toDateString() === today
       ).length;
-      document.getElementById('today-logs').textContent = todayLogs;
+      document.getElementById('today-logs').textContent = formatNumber(todayLogs);
     }
 
     function updateLogTable() {
@@ -948,8 +952,8 @@
       try {
         const data = await makeRequest('/codes');
         allCodes = data || [];
-        
-        document.getElementById('total-codes').textContent = allCodes.length;
+
+        document.getElementById('total-codes').textContent = formatNumber(allCodes.length);
         updateCodeTable();
         
       } catch (error) {
