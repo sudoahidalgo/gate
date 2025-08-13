@@ -219,13 +219,45 @@
     <div id="debug-results" style="margin-top: 0.5rem; font-size: 0.75rem;"></div>
   </div>
   
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+  <script src="codes-encrypted.js"></script>
   <script>
+    const SECRET_KEY = 'mySecretKey';
+    const codes = JSON.parse(
+      CryptoJS.AES.decrypt(encryptedCodes, SECRET_KEY).toString(CryptoJS.enc.Utf8)
+    );
+
     // API base path (empty string when hosted on Netlify)
     const BACKEND_URL = '';
-    
+
     const DURACION_CIERRE = 38;
     let timerInterval;
     let isConnected = false;
+
+    const COSTA_RICA_OFFSET = -6;
+
+    function getCostaRicaTime() {
+      const now = new Date();
+      const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+      return new Date(utc + COSTA_RICA_OFFSET * 3600000);
+    }
+
+    function isCodeAllowed(code) {
+      const now = getCostaRicaTime();
+      const currentDay = now.getDay();
+      if (!code.days.includes(currentDay)) return false;
+
+      const [sh, sm] = code.start_time.split(':').map(Number);
+      const [eh, em] = code.end_time.split(':').map(Number);
+      const startMinutes = sh * 60 + sm;
+      const endMinutes = eh * 60 + em;
+      const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+      if (startMinutes <= endMinutes) {
+        return currentMinutes >= startMinutes && currentMinutes <= endMinutes;
+      }
+      return currentMinutes >= startMinutes || currentMinutes <= endMinutes;
+    }
 
     function updateConnectionStatus(connected) {
       const statusEl = document.getElementById('connection-status');
@@ -337,17 +369,29 @@
       const input = document.getElementById('codigo').value;
       const msg = document.getElementById('msg');
       const btn = document.getElementById('abrir-btn');
-      
-      msg.innerHTML = ''; // CAMBIO: usar innerHTML en lugar de textContent
+
+      msg.innerHTML = '';
       msg.className = '';
-      
+
       if (input.length !== 4) {
         msg.innerHTML = '<div style="color: #ee5253; font-weight: 600;">⚠️ Ingresá los 4 dígitos completos.</div>';
         msg.className = 'err';
         return;
       }
-      
-      // Verificar conexión antes de enviar
+
+      const code = codes.find(c => c.pin === input);
+      if (!code) {
+        msg.innerHTML = '<div style="color: #ee5253; font-weight: 600;">❌ Código incorrecto.</div>';
+        msg.className = 'err';
+        return;
+      }
+
+      if (!isCodeAllowed(code)) {
+        msg.innerHTML = '<div style="color: #ee5253; font-weight: 600;">⏰ Código fuera de horario permitido.</div>';
+        msg.className = 'err';
+        return;
+      }
+
       if (!isConnected) {
         msg.innerHTML = '<div style="color: #ee5253; font-weight: 600;">🌐 No hay conexión con el servidor. Verificando...</div>';
         msg.className = 'err';
@@ -358,43 +402,20 @@
           return;
         }
       }
-      
+
       btn.disabled = true;
       btn.textContent = 'Enviando...';
-      
+
       try {
-        const response = await fetch(`${BACKEND_URL}/open`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ pin: input })
-        });
-        
+        const response = await fetch(`${BACKEND_URL}/open`, { method: 'POST' });
         if (response.ok) {
-          const data = await response.json();
-          
-          // ✅ CAMBIO PRINCIPAL: Mostrar mensaje personalizado si hay nombre de usuario
-          if (data.user) {
-            mostrarMensajeBienvenida(data.user);
-          } else {
-            // Fallback al mensaje original si no hay usuario
-            msg.innerHTML = '<div style="color: #23bc6b; font-weight: 600;">✅ ¡Listo! El portón se está abriendo.</div>';
-            msg.className = 'ok';
-          }
-          
+          mostrarMensajeBienvenida(code.username);
           updateConnectionStatus(true);
           iniciarTimer(btn);
-          
-          // Limpiar el código después de éxito
           document.getElementById('codigo').value = '';
         } else {
-          const data = await response.json().catch(() => null);
-          const errorMessage = (data && data.error) ? data.error : 'Hubo un error. Intentá de nuevo.';
-          msg.innerHTML = `<div style="color: #ee5253; font-weight: 600;">❌ ${errorMessage}</div>`;
+          msg.innerHTML = '<div style="color: #ee5253; font-weight: 600;">❌ Hubo un error. Intentá de nuevo.</div>';
           msg.className = 'err';
-          
-          if (response.status >= 500) {
-            updateConnectionStatus(false);
-          }
         }
       } catch (error) {
         console.error('Error al abrir portón:', error);
