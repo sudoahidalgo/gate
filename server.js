@@ -34,7 +34,12 @@ function loadCodes() {
 }
 
 function saveCodes(codes) {
-  fs.writeFileSync(CODES_FILE, JSON.stringify(codes, null, 2));
+  try {
+    fs.writeFileSync(CODES_FILE, JSON.stringify(codes, null, 2));
+  } catch (err) {
+    console.error('Failed to write codes file', err);
+    throw err;
+  }
 }
 
 async function handleCodes(req, res) {
@@ -52,15 +57,22 @@ async function handleCodes(req, res) {
     let body = '';
     req.on('data', chunk => body += chunk);
     req.on('end', () => {
+      let data;
       try {
-        const data = JSON.parse(body || '{}');
+        data = JSON.parse(body || '{}');
+      } catch {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Invalid JSON' }));
+        return;
+      }
+      try {
         codes.push(data);
         saveCodes(codes);
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ ok: true }));
       } catch {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Invalid JSON' }));
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Internal server error' }));
       }
     });
     return;
@@ -74,28 +86,40 @@ async function handleCodes(req, res) {
       let body = '';
       req.on('data', chunk => body += chunk);
       req.on('end', () => {
+        let data;
         try {
-          const data = JSON.parse(body || '{}');
+          data = JSON.parse(body || '{}');
+        } catch {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Invalid JSON' }));
+          return;
+        }
+        try {
           if (index === -1) codes.push({ pin, ...data });
           else codes[index] = { ...codes[index], ...data, pin };
           saveCodes(codes);
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ ok: true }));
         } catch {
-          res.writeHead(400, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'Invalid JSON' }));
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Internal server error' }));
         }
       });
       return;
     }
 
     if (req.method === 'DELETE') {
-      if (index !== -1) {
-        codes.splice(index, 1);
-        saveCodes(codes);
+      try {
+        if (index !== -1) {
+          codes.splice(index, 1);
+          saveCodes(codes);
+        }
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true }));
+      } catch {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Internal server error' }));
       }
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ ok: true }));
       return;
     }
 
