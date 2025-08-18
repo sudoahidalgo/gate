@@ -43,6 +43,11 @@
   to = "/admin-logs.html"
   status = 200
 
+[[redirects]]
+  from = "/alpha"
+  to = "/.netlify/functions/alpha"
+  status = 200
+
 # Environment variables for build (you'll need to set these in Netlify dashboard)
 [build.environment]
   NODE_VERSION = "18"
