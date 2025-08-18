@@ -195,6 +195,11 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  if (req.method === 'GET' && req.url === '/alpha') {
+    handleOpen(req, res);
+    return;
+  }
+
   setCorsHeaders(res);
   res.writeHead(404, { 'Content-Type': 'text/plain' });
   res.end('Not Found');
