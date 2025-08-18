@@ -1,14 +1,14 @@
-const { createClient } = require('@supabase/supabase-js');
 const https = require('https');
 const http = require('http');
-
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+const fs = require('fs');
+const path = require('path');
 
 const WEBHOOK_URL =
   process.env.WEBHOOK_URL ||
   'https://dyaxguerproyd2kte4awwggu9ylh6rsd.ui.nabu.casa/api/webhook/porton_abrir';
+
+const CODES_FILE = path.join(__dirname, '../../codes.json');
+const LOGS_FILE = path.join(__dirname, '../../logs.json');
 
 function minutes(t) {
   const [h, m] = t.split(':').map(Number);
@@ -39,21 +39,34 @@ function codeAllowed(code) {
   return cur >= startM || cur <= endM;
 }
 
-async function pinAllowed(pin) {
-  const { data, error } = await supabase
-    .from('codes')
-    .select('*')
-    .eq('pin', pin)
-    .single();
-  if (error || !data) return null;
-  return codeAllowed(data) ? data : null;
+function loadCodes() {
+  try {
+    const data = fs.readFileSync(CODES_FILE, 'utf8');
+    return JSON.parse(data);
+  } catch {
+    return [];
+  }
 }
 
-async function appendLog(pin, user) {
-  const { error } = await supabase
-    .from('logs')
-    .insert({ timestamp: new Date().toISOString(), pin, user });
-  if (error) console.error('Error writing log:', error);
+function pinAllowed(pin) {
+  const codes = loadCodes();
+  const code = codes.find(c => String(c.pin) === String(pin));
+  return code && codeAllowed(code) ? code : null;
+}
+
+function loadLogs() {
+  try {
+    const data = fs.readFileSync(LOGS_FILE, 'utf8');
+    return JSON.parse(data);
+  } catch {
+    return [];
+  }
+}
+
+function appendLog(pin, user) {
+  const logs = loadLogs();
+  logs.push({ timestamp: new Date().toISOString(), pin, user });
+  fs.writeFileSync(LOGS_FILE, JSON.stringify(logs, null, 2));
 }
 
 function forwardWebhook() {
@@ -89,15 +102,7 @@ function forwardWebhook() {
   });
 }
 
-exports.handler = async (event, context) => {
-  if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
-    console.error('Missing Supabase configuration');
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: 'Missing Supabase configuration' })
-    };
-  }
-
+exports.handler = async (event) => {
   // Enable CORS
   const headers = {
     'Access-Control-Allow-Origin': '*',
@@ -123,7 +128,7 @@ exports.handler = async (event, context) => {
     const pin = data.pin || 'unknown';
     console.log(`Netlify function: Attempting to open with PIN ${pin} at ${getNow().toISOString()}`);
     
-    const code = await pinAllowed(pin);
+    const code = pinAllowed(pin);
     
     if (!code) {
       console.log(`Netlify function: PIN ${pin} rejected`);
@@ -135,7 +140,7 @@ exports.handler = async (event, context) => {
     }
 
     console.log(`Netlify function: PIN ${pin} accepted for user ${code.user}`);
-    await appendLog(pin, code.user);
+    appendLog(pin, code.user);
 
     try {
       await forwardWebhook();
