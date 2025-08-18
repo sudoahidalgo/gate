@@ -194,7 +194,7 @@
 <body>
   <button id="admin-btn" onclick="pedirAdmin()">Admin</button>
   <div class="container">
-    <div id="greeting"></div>
+    
     <h2>Porton Familia HiVe</h2>
     <input type="password" maxlength="4" id="codigo" autocomplete="one-time-code">
     <br>
@@ -241,19 +241,6 @@
       const utc = now.getTime() + now.getTimezoneOffset() * 60000;
       return new Date(utc + COSTA_RICA_OFFSET * 3600000);
     }
-
-    function mostrarSaludo(email) {
-      if (!email) return;
-      const base = email.split('@')[0].replace(/\./g, ' ');
-      const nombre = base.replace(/\b\w/g, c => c.toUpperCase());
-      const hora = getCostaRicaTime().getHours();
-      const saludo = hora < 12 ? 'Buenos Días ☀️' : 'Hasta mañana! 🌙';
-      const el = document.getElementById('greeting');
-      if (el) el.textContent = `Hola ${nombre}! ${saludo}`;
-    }
-
-    const params = new URLSearchParams(window.location.search);
-    mostrarSaludo(params.get('user'));
 
     function isCodeAllowed(code) {
       const now = getCostaRicaTime();
