@@ -1,51 +1,6 @@
-const { createClient } = require('@supabase/supabase-js');
+const { loadCodes, saveCodes } = require('./storage');
 
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
-
-async function loadCodes() {
-  const { data, error } = await supabase.from('codes').select('*');
-  if (error) {
-    console.error('Error loading codes:', error);
-    return [];
-  }
-  return data || [];
-}
-
-async function saveCode(code) {
-  const { error } = await supabase.from('codes').insert(code);
-  if (error) {
-    console.error('Error saving code:', error);
-    throw new Error('Failed to save code');
-  }
-}
-
-async function updateCode(pin, updates) {
-  const { error } = await supabase.from('codes').update(updates).eq('pin', pin);
-  if (error) {
-    console.error('Error updating code:', error);
-    throw new Error('Failed to update code');
-  }
-}
-
-async function deleteCode(pin) {
-  const { error } = await supabase.from('codes').delete().eq('pin', pin);
-  if (error) {
-    console.error('Error deleting code:', error);
-    throw new Error('Failed to delete code');
-  }
-}
-
-exports.handler = async (event, context) => {
-  if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
-    console.error('Missing Supabase configuration');
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: 'Missing Supabase configuration' })
-    };
-  }
-  // Enable CORS
+exports.handler = async (event) => {
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
@@ -57,70 +12,45 @@ exports.handler = async (event, context) => {
     return { statusCode: 200, headers, body: '' };
   }
 
+  const parts = event.path.split('/').filter(Boolean); // ['codes', '1234']
+  const codes = loadCodes();
+
   try {
-    if (event.httpMethod === 'GET') {
-      const codes = await loadCodes();
-      return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify(codes)
-      };
+    if (parts.length === 1 && event.httpMethod === 'GET') {
+      return { statusCode: 200, headers, body: JSON.stringify(codes) };
     }
 
-    if (event.httpMethod === 'POST') {
-      const data = JSON.parse(event.body);
-      const pin = String(data.pin || '').trim();
-      if (!/^[A-Za-z0-9]{4,10}$/.test(pin)) {
-        return {
-          statusCode: 400,
-          headers,
-          body: JSON.stringify({ error: 'PIN inválido' })
-        };
-      }
-      await saveCode({
-        pin,
-        username: data.username || '',
-        days: Array.isArray(data.days) ? data.days : [],
-        start_time: data.start_time || '00:00',
-        end_time: data.end_time || '23:59'
-      });
-      
-      return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify({ ok: true })
-      };
-    }
-
-    if (event.httpMethod === 'PUT') {
-      const pin = decodeURIComponent(event.path.split('/').pop());
+    if (parts.length === 1 && event.httpMethod === 'POST') {
       const data = JSON.parse(event.body || '{}');
-      await updateCode(pin, {
-        username: data.username || '',
-        days: Array.isArray(data.days) ? data.days : [],
-        start_time: data.start_time || '00:00',
-        end_time: data.end_time || '23:59'
-      });
+      codes.push(data);
+      saveCodes(codes);
       return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };
     }
 
-    if (event.httpMethod === 'DELETE') {
-      const pin = decodeURIComponent(event.path.split('/').pop());
-      await deleteCode(pin);
-      return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };
+    if (parts.length === 2) {
+      const pin = decodeURIComponent(parts[1]);
+      const index = codes.findIndex(c => String(c.pin) === pin);
+
+      if (event.httpMethod === 'PUT') {
+        const data = JSON.parse(event.body || '{}');
+        if (index === -1) codes.push({ pin, ...data });
+        else codes[index] = { ...codes[index], ...data, pin };
+        saveCodes(codes);
+        return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };
+      }
+
+      if (event.httpMethod === 'DELETE') {
+        if (index !== -1) {
+          codes.splice(index, 1);
+          saveCodes(codes);
+        }
+        return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };
+      }
     }
 
-    return {
-      statusCode: 405,
-      headers,
-      body: JSON.stringify({ error: 'Method not allowed' })
-    };
+    return { statusCode: 404, headers, body: JSON.stringify({ error: 'Not Found' }) };
   } catch (error) {
     console.error('Function error:', error);
-    return {
-      statusCode: 500,
-      headers,
-      body: JSON.stringify({ error: 'Internal server error' })
-    };
+    return { statusCode: 500, headers, body: JSON.stringify({ error: 'Internal server error' }) };
   }
 };
